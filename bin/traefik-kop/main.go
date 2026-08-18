@@ -19,7 +19,6 @@ var (
 	version string
 	commit  string
 	date    string
-	builtBy string
 )
 
 func printVersion(c *cli.Context) error {

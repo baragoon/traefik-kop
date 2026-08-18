@@ -104,7 +104,7 @@ traefik natively processes them.
 
 - Use exact service name match when searching container labels (#39, thanks @damfleu)
 
-**Full Changelog**: https://github.com/jittering/traefik-kop/compare/v0.13.3...v0.14
+**[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.13.3...v0.14)**
 
 ## v0.13.3
 
@@ -116,11 +116,9 @@ traefik natively processes them.
 
 ## v0.13.1
 
-* [build: upgraded docker client dep](https://github.com/jittering/traefik-kop/commit/e7f30f3108f46cf0d174369b45f59d57398d002b)
-* [fix: NPE when creating error message from port map](https://github.com/jittering/traefik-kop/commit/80d40e2aa904a78d4ec7b311c9f99bc449f556f3) ([fixes #24](https://github.com/jittering/traefik-kop/issues/24))
-* [fix: avoid possible NPE when resolving CNI container IP](https://github.com/jittering/traefik-kop/commit/37686b0089ccaf91d4fa13df62447e15671944dd)
-
-
+- [build: upgraded docker client dep](https://github.com/jittering/traefik-kop/commit/e7f30f3108f46cf0d174369b45f59d57398d002b)
+- [fix: NPE when creating error message from port map](https://github.com/jittering/traefik-kop/commit/80d40e2aa904a78d4ec7b311c9f99bc449f556f3) ([fixes #24](https://github.com/jittering/traefik-kop/issues/24))
+- [fix: avoid possible NPE when resolving CNI container IP](https://github.com/jittering/traefik-kop/commit/37686b0089ccaf91d4fa13df62447e15671944dd)
 
 ## [v0.13](https://github.com/jittering/traefik-kop/tree/v0.13) (2022-10-17)
 
@@ -187,16 +185,13 @@ or set to 0 to disable it completely.
 - [32c2df6](https://github.com/jittering/traefik-kop/commit/32c2df6) test: added pihole container (with builtin healthcheck)
 - [e770242](https://github.com/jittering/traefik-kop/commit/e770242) docs: updated changelog
 
-
-
 ## v0.11
-
 
 [Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.10.1...v0.11)
 
-#### Notes
+### Notes
 
-* If your container is configured to use a network-routable IP address via an
+- If your container is configured to use a network-routable IP address via an
 overlay network or CNI plugin, that address will override the `bind-ip`
 configuration when the `traefik.docker.network` label is present.
 
@@ -204,60 +199,37 @@ configuration when the `traefik.docker.network` label is present.
 
 - Add support for `traefik.docker.network` [\#8](https://github.com/jittering/traefik-kop/pull/8) ([hcooper](https://github.com/hcooper))
 
-
 ## v0.10.1
 
-* e0af6eb Merge pull request #7 from jittering/fix/port-detect
-
-
-
-## v0.10.1
-
-* e0af6eb Merge pull request #7 from jittering/fix/port-detect
-
-
+- e0af6eb Merge pull request #7 from jittering/fix/port-detect
 
 ## v0.10.0
 
-* 5d029d2 feat: add support for ports published via --publish-all (closes #6)
-
-
+- 5d029d2 feat: add support for ports published via --publish-all (closes #6)
 
 ## v0.9.2
 
-* 5871d16 feat: log the container name/id if found
-
-
+- 5871d16 feat: log the container name/id if found
 
 ## v0.9.1
 
-
-* fbd2d1d fix: Automatic port assignment not working for containers without a service
-
+- fbd2d1d fix: Automatic port assignment not working for containers without a service
 
 ## v0.9
 
-
-* 4bd7cd1 Merge pull request #2 from jittering/feature/detect-host-port
-
-
+- 4bd7cd1 Merge pull request #2 from jittering/feature/detect-host-port
 
 ## v0.8.1
 
-
-* e69bd05 fix: strip @docker when removing keys
-
+- e69bd05 fix: strip @docker when removing keys
 
 ### Docker images
 
 - `docker pull ghcr.io/jittering/traefik-kop:0.8.1`
 
-
 ## v0.8
 
-
-* dccbf22 build: fix release step
-
+- dccbf22 build: fix release step
 
 ### Docker images
 

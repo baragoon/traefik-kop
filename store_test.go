@@ -76,6 +76,16 @@ func Test_redisStoreTLSOpts(t *testing.T) {
 	plainRS, ok := plainStore.(*RedisStore)
 	require.True(t, ok)
 	assert.Nil(t, plainRS.client.Options().TLSConfig)
+
+	directConfig := redisTLSConfigForAddr("redis.domain:443")
+	require.NotNil(t, directConfig)
+	assert.Equal(t, "redis.domain", directConfig.ServerName)
+	assert.Equal(t, uint16(tls.VersionTLS12), directConfig.MinVersion)
+
+	sentinelConfig := redisTLSConfigForAddr("sentinel.domain:26379")
+	require.NotNil(t, sentinelConfig)
+	assert.Equal(t, "sentinel.domain", sentinelConfig.ServerName)
+	assert.NotEqual(t, directConfig.ServerName, sentinelConfig.ServerName)
 }
 
 func Test_redisStoreRemovesStaleServerKeysOnUpdate(t *testing.T) {

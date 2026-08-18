@@ -45,30 +45,54 @@ type RedisStore struct {
 	lastConfig *dynamic.Configuration
 }
 
+func redisTLSConfigForAddr(addr string) *tls.Config {
+	if addr == "" {
+		return nil
+	}
+
+	host := addr
+	if parsedHost, _, err := net.SplitHostPort(addr); err == nil && parsedHost != "" {
+		host = parsedHost
+	}
+
+	return &tls.Config{
+		ServerName: host,
+		MinVersion: tls.VersionTLS12,
+	}
+}
+
+func redisDialer() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		tlsConfig := redisTLSConfigForAddr(addr)
+		if tlsConfig == nil {
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		}
+		return tls.DialWithDialer(&net.Dialer{}, network, addr, tlsConfig)
+	}
+}
+
 func NewRedisStore(hostname string, addr string, ttl int, user string, pass string, db int, sentinelAddrs []string, sentinelMaster string, tlsEnabled bool) TraefikStore {
 	var client *redis.Client
 
-	var tlsConfig *tls.Config
+	directTLSConfig := (*tls.Config)(nil)
 	if tlsEnabled {
-		tlsConfig = &tls.Config{}
-		host, _, err := net.SplitHostPort(addr)
-		if err == nil && host != "" {
-			tlsConfig.ServerName = host
-		}
-		tlsConfig.MinVersion = tls.VersionTLS12
+		directTLSConfig = redisTLSConfigForAddr(addr)
 	}
 
 	if len(sentinelAddrs) > 0 && sentinelMaster != "" {
 		log.Info().Msgf("creating new redis store via sentinel (master=%s, sentinels=%v) for hostname %s with %dsec TTL", sentinelMaster, sentinelAddrs, hostname, ttl)
-		client = redis.NewFailoverClient(&redis.FailoverOptions{
+		failoverOpts := &redis.FailoverOptions{
 			MasterName:      sentinelMaster,
 			SentinelAddrs:   sentinelAddrs,
 			DisableIdentity: true,
 			Username:        user,
 			Password:        pass,
 			DB:              db,
-			TLSConfig:       tlsConfig,
-		})
+		}
+		if tlsEnabled {
+			failoverOpts.Dialer = redisDialer()
+		}
+		client = redis.NewFailoverClient(failoverOpts)
 	} else {
 		log.Info().Msgf("creating new redis store at %s for hostname %s with %dsec TTL", addr, hostname, ttl)
 		client = redis.NewClient(&redis.Options{
@@ -78,7 +102,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 			Username:        user,
 			Password:        pass,
 			DB:              db,
-			TLSConfig:       tlsConfig,
+			TLSConfig:       directTLSConfig,
 		})
 	}
 

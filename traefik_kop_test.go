@@ -65,7 +65,7 @@ func Test_replaceIPs(t *testing.T) {
 func createTestClient(labels map[string]string) *fakeDockerClient {
 	return &fakeDockerClient{
 		containers: []container.Summary{
-			container.Summary{
+			{
 				ID: "foobar_id",
 			},
 		},

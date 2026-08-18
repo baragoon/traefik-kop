@@ -2,7 +2,6 @@ package traefikkop
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -37,8 +36,3 @@ func Test_configToKV(t *testing.T) {
 	// t.Fail()
 }
 
-func dumpKV(kv map[string]interface{}) {
-	for k, v := range kv {
-		fmt.Printf("%s = %s\n", k, v)
-	}
-}

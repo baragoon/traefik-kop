@@ -1,17 +1,8 @@
 package traefikkop
 
 import (
-	"encoding/json"
 	"strings"
 )
-
-func dumpJson(o interface{}) []byte {
-	out, err := json.Marshal(o)
-	if err != nil {
-		panic(err)
-	}
-	return out
-}
 
 func splitStringArr(str string) []string {
 	trimmed := strings.TrimSpace(str)
