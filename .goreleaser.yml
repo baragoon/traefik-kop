@@ -8,6 +8,7 @@ before:
     - go mod download
 builds:
   - main: ./bin/traefik-kop/
+    binary: traefik-kop
     env:
       - CGO_ENABLED=0
     goos:

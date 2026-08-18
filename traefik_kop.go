@@ -111,7 +111,7 @@ func Start(config Config) {
 	}
 
 	dp := newDockerProvider(config)
-	store := NewRedisStore(config.Hostname, config.RedisAddr, config.RedisTTL, config.RedisUser, config.RedisPass, config.RedisDB, config.RedisSentinelAddrs, config.RedisSentinelMaster)
+	store := NewRedisStore(config.Hostname, config.RedisAddr, config.RedisTTL, config.RedisUser, config.RedisPass, config.RedisDB, config.RedisSentinelAddrs, config.RedisSentinelMaster, config.RedisTLS)
 	err = store.Ping()
 	if err != nil {
 		if len(config.RedisSentinelAddrs) > 0 {

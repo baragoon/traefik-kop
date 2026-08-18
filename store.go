@@ -2,7 +2,9 @@ package traefikkop
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
 	"reflect"
 	"regexp"
 	"sort"
@@ -43,8 +45,18 @@ type RedisStore struct {
 	lastConfig *dynamic.Configuration
 }
 
-func NewRedisStore(hostname string, addr string, ttl int, user string, pass string, db int, sentinelAddrs []string, sentinelMaster string) TraefikStore {
+func NewRedisStore(hostname string, addr string, ttl int, user string, pass string, db int, sentinelAddrs []string, sentinelMaster string, tlsEnabled bool) TraefikStore {
 	var client *redis.Client
+
+	var tlsConfig *tls.Config
+	if tlsEnabled {
+		tlsConfig = &tls.Config{}
+		host, _, err := net.SplitHostPort(addr)
+		if err == nil && host != "" {
+			tlsConfig.ServerName = host
+		}
+		tlsConfig.MinVersion = tls.VersionTLS12
+	}
 
 	if len(sentinelAddrs) > 0 && sentinelMaster != "" {
 		log.Info().Msgf("creating new redis store via sentinel (master=%s, sentinels=%v) for hostname %s with %dsec TTL", sentinelMaster, sentinelAddrs, hostname, ttl)
@@ -55,6 +67,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 			Username:        user,
 			Password:        pass,
 			DB:              db,
+			TLSConfig:       tlsConfig,
 		})
 	} else {
 		log.Info().Msgf("creating new redis store at %s for hostname %s with %dsec TTL", addr, hostname, ttl)
@@ -65,6 +78,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 			Username:        user,
 			Password:        pass,
 			DB:              db,
+			TLSConfig:       tlsConfig,
 		})
 	}
 

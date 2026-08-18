@@ -123,7 +123,8 @@ GLOBAL OPTIONS:
    --redis-user value     Redis username (default: "default") [$REDIS_USER]
    --redis-pass value     Redis password (if needed) [$REDIS_PASS]
    --redis-db value       Redis DB number (default: 0) [$REDIS_DB]
-   --redis-ttl value              Redis TTL (in seconds) (default: 0) [$REDIS_TTL]
+   --redis-tls            Connect to Redis over TLS (default: false) [$REDIS_TLS]
+   --redis-ttl value      Redis TTL (in seconds) (default: 0) [$REDIS_TTL]
    --redis-sentinel-addrs value   Comma-separated list of Redis Sentinel addresses (e.g., host1:26379,host2:26379) [$REDIS_SENTINEL_ADDRS]
    --redis-sentinel-master value  Redis Sentinel master name [$REDIS_SENTINEL_MASTER]
    --docker-host value            Docker endpoint (default: "unix:///var/run/docker.sock") [$DOCKER_ADDR]
@@ -136,7 +137,7 @@ GLOBAL OPTIONS:
    --version, -V          Print the version (default: false)
 ```
 
-Most important are the `bind-ip`/`bind-interface` and `redis-addr` flags.
+Most important are the `bind-ip`/`bind-interface` and `redis-addr` flags. For TLS-enabled Redis endpoints, also set `--redis-tls` (or `REDIS_TLS=true`) alongside the address and credentials.
 
 ## IP Binding
 

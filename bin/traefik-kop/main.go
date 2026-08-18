@@ -99,6 +99,12 @@ func flags() {
 				Value:   0,
 				EnvVars: []string{"REDIS_DB"},
 			},
+			&cli.BoolFlag{
+				Name:    "redis-tls",
+				Usage:   "Connect to Redis over TLS",
+				Value:   false,
+				EnvVars: []string{"REDIS_TLS"},
+			},
 			&cli.IntFlag{
 				Name:    "redis-ttl",
 				Usage:   "Redis TTL (in seconds)",
@@ -212,6 +218,7 @@ func doStart(c *cli.Context) error {
 		RedisUser:           c.String("redis-user"),
 		RedisPass:           c.String("redis-pass"),
 		RedisDB:             c.Int("redis-db"),
+		RedisTLS:            c.Bool("redis-tls"),
 		RedisTTL:            c.Int("redis-ttl"),
 		RedisSentinelAddrs:  sentinelAddrs,
 		RedisSentinelMaster: c.String("redis-sentinel-master"),
