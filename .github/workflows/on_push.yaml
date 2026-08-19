@@ -88,8 +88,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         run: |
           set -eo pipefail
-          # Build artifacts only; do not have goreleaser attempt to build/publish docker images here.
-          goreleaser release --clean --snapshot --skip-publish --parallelism 2
+          # Build artifacts only; use 'goreleaser build' to avoid publishing since some
+          # goreleaser versions do not support --skip-publish on 'release'.
+          goreleaser build --clean --snapshot
 
       - name: Build and push multi-arch Docker image
         env:
