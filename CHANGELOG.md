@@ -4,7 +4,7 @@
 
 ### Fixes
 
-- Abort previous retry thread on next poll loop (resolves [#94](https://github.com/jittering/traefik-kop/issues/94))
+- Abort previous retry thread on next poll loop (resolves [#94](https://github.com/baragoon/traefik-kop/issues/94))
 
 ## v0.20.0
 
@@ -13,12 +13,12 @@ traefik natively processes them.
 
 ### New Features
 
-- Redis Sential support ([#92, thanks @Kuppit](https://github.com/jittering/traefik-kop/pull/92))
+- Redis Sential support ([#92, thanks @Kuppit](https://github.com/baragoon/traefik-kop/pull/92))
 
 ### Fixes
 
-- Improved serialization of config to redis KV [[#88](https://github.com/jittering/traefik-kop/pull/88)]
-- clean up stale loadBalancer/servers entries on config update ([#90, thanks @Kuppit](https://github.com/jittering/traefik-kop/pull/90))
+- Improved serialization of config to redis KV [[#88](https://github.com/baragoon/traefik-kop/pull/88)]
+- clean up stale loadBalancer/servers entries on config update ([#90, thanks @Kuppit](https://github.com/baragoon/traefik-kop/pull/90))
 
 ## v0.19.4
 
@@ -40,7 +40,7 @@ traefik natively processes them.
 
 ### Fixes
 
-- Auto-negotiation docker API version [#78](https://github.com/jittering/traefik-kop/issues/78)
+- Auto-negotiation docker API version [#78](https://github.com/baragoon/traefik-kop/issues/78)
 
 ## v0.19
 
@@ -50,13 +50,13 @@ traefik natively processes them.
 
 ### Fixes
 
-- NPE when using label prefix [#76](https://github.com/jittering/traefik-kop/issues/76)
+- NPE when using label prefix [#76](https://github.com/baragoon/traefik-kop/issues/76)
 
 ### Other
 
 - Upgraded `traefik` lib used by `traefik-kop` to v3.5
 
-**Note:** 3.x had some minor route config changes including a new field in 3.5. It is recommended to use the latest 3.5.x version of traefik with this release. If you are on 3.4 or lower, you should continue using 0.18.1 [`ghcr.io/jittering/traefik-kop:0.18.1`] (See #77 for details).
+**Note:** 3.x had some minor route config changes including a new field in 3.5. It is recommended to use the latest 3.5.x version of traefik with this release. If you are on 3.4 or lower, you should continue using 0.18.1 [`ghcr.io/baragoon/traefik-kop:0.18.1`] (See #77 for details).
 
 ## v0.18.1
 
@@ -66,45 +66,45 @@ traefik natively processes them.
 
 ### New Features
 
-- Add `--bind-interface` (env: `BIND_INTERFACE`) to select the network interface from which to derive the bind IP when `--bind-ip` is not set. This requires the container to be run with `network_mode: host`. [#64, thanks @libnewton](https://github.com/jittering/traefik-kop/pull/58)
-- Allow passing redis username via `--redis-user` (env: `REDIS_USER`) [#69](https://github.com/jittering/traefik-kop/pull/69)
-- Allow filtering traefik labels using prefix [#70](https://github.com/jittering/traefik-kop/pull/70)
+- Add `--bind-interface` (env: `BIND_INTERFACE`) to select the network interface from which to derive the bind IP when `--bind-ip` is not set. This requires the container to be run with `network_mode: host`. [#64, thanks @libnewton](https://github.com/baragoon/traefik-kop/pull/58)
+- Allow passing redis username via `--redis-user` (env: `REDIS_USER`) [#69](https://github.com/baragoon/traefik-kop/pull/69)
+- Allow filtering traefik labels using prefix [#70](https://github.com/baragoon/traefik-kop/pull/70)
 
 ## v0.17
 
 ### New Features
 
-- Support for setting a TTL on Redis keys [#58](https://github.com/jittering/traefik-kop/pull/58)
-- Support for merging load balancers across multiple nodes managed by `traefik-kop` [#59](https://github.com/jittering/traefik-kop/pull/59)
+- Support for setting a TTL on Redis keys [#58](https://github.com/baragoon/traefik-kop/pull/58)
+- Support for merging load balancers across multiple nodes managed by `traefik-kop` [#59](https://github.com/baragoon/traefik-kop/pull/59)
 
 ### Fixes
 
-- Allow outbound IP detection to fail [#56](https://github.com/jittering/traefik-kop/pull/56)
-- Normalize container labels [#56](https://github.com/jittering/traefik-kop/pull/57)
+- Allow outbound IP detection to fail [#56](https://github.com/baragoon/traefik-kop/pull/56)
+- Normalize container labels [#56](https://github.com/baragoon/traefik-kop/pull/57)
 
 ## v0.16
 
 ### Fixes
 
-- Fix port detection when publishing to ephemeral ports [#48, thanks @Flamefork](https://github.com/jittering/traefik-kop/pull/48)
+- Fix port detection when publishing to ephemeral ports [#48, thanks @Flamefork](https://github.com/baragoon/traefik-kop/pull/48)
 
 ## v0.15
 
 ### Fixes
 
-- Push last config to redis in the case of a restart or failure in the cache [#46](https://github.com/jittering/traefik-kop/pull/46)
+- Push last config to redis in the case of a restart or failure in the cache [#46](https://github.com/baragoon/traefik-kop/pull/46)
 
 ## v0.14
 
 ### New Features
 
-- Allow filtering containers processed by `traefik-kop` using [namespaces](https://github.com/jittering/traefik-kop#namespaces)
+- Allow filtering containers processed by `traefik-kop` using [namespaces](https://github.com/baragoon/traefik-kop#namespaces)
 
 ### Fixes
 
 - Use exact service name match when searching container labels (#39, thanks @damfleu)
 
-**[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.13.3...v0.14)**
+**[Full Changelog](https://github.com/baragoon/traefik-kop/compare/v0.13.3...v0.14)**
 
 ## v0.13.3
 
@@ -116,13 +116,13 @@ traefik natively processes them.
 
 ## v0.13.1
 
-- [build: upgraded docker client dep](https://github.com/jittering/traefik-kop/commit/e7f30f3108f46cf0d174369b45f59d57398d002b)
-- [fix: NPE when creating error message from port map](https://github.com/jittering/traefik-kop/commit/80d40e2aa904a78d4ec7b311c9f99bc449f556f3) ([fixes #24](https://github.com/jittering/traefik-kop/issues/24))
-- [fix: avoid possible NPE when resolving CNI container IP](https://github.com/jittering/traefik-kop/commit/37686b0089ccaf91d4fa13df62447e15671944dd)
+- [build: upgraded docker client dep](https://github.com/baragoon/traefik-kop/commit/e7f30f3108f46cf0d174369b45f59d57398d002b)
+- [fix: NPE when creating error message from port map](https://github.com/baragoon/traefik-kop/commit/80d40e2aa904a78d4ec7b311c9f99bc449f556f3) ([fixes #24](https://github.com/baragoon/traefik-kop/issues/24))
+- [fix: avoid possible NPE when resolving CNI container IP](https://github.com/baragoon/traefik-kop/commit/37686b0089ccaf91d4fa13df62447e15671944dd)
 
-## [v0.13](https://github.com/jittering/traefik-kop/tree/v0.13) (2022-10-17)
+## [v0.13](https://github.com/baragoon/traefik-kop/tree/v0.13) (2022-10-17)
 
-[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.12.1...v0.13)
+[Full Changelog](https://github.com/baragoon/traefik-kop/compare/v0.12.1...v0.13)
 
 ### New Features
 
@@ -135,11 +135,11 @@ traefik natively processes them.
 
 ### Closed issues
 
-- Go runtime error [\#20](https://github.com/jittering/traefik-kop/issues/20)
-- Default Rule [\#18](https://github.com/jittering/traefik-kop/issues/18)
-- Provide IP for each docker via label [\#17](https://github.com/jittering/traefik-kop/issues/17)
-- setting port for tcp service does not work [\#16](https://github.com/jittering/traefik-kop/issues/16)
-- Doesn't work with multiple services on one container [\#14](https://github.com/jittering/traefik-kop/issues/14)
+- Go runtime error [\#20](https://github.com/baragoon/traefik-kop/issues/20)
+- Default Rule [\#18](https://github.com/baragoon/traefik-kop/issues/18)
+- Provide IP for each docker via label [\#17](https://github.com/baragoon/traefik-kop/issues/17)
+- setting port for tcp service does not work [\#16](https://github.com/baragoon/traefik-kop/issues/16)
+- Doesn't work with multiple services on one container [\#14](https://github.com/baragoon/traefik-kop/issues/14)
 
 ## v0.12.1
 
@@ -147,13 +147,13 @@ This release updates the upstream version of the traefik library to v2.8.4 and
 adds additional logging around port detection (both debug and info levels) to
 make it easier to see what's going on and troubleshoot various scenarios.
 
-[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.12...v0.12.1)
+[Full Changelog](https://github.com/baragoon/traefik-kop/compare/v0.12...v0.12.1)
 
-- [8c5a3f0](https://github.com/jittering/traefik-kop/commit/8c5a3f0) build: bump actions/cache to v3
-- [dad6e90](https://github.com/jittering/traefik-kop/commit/dad6e90) build: bump go version in github actions
-- [f009b84](https://github.com/jittering/traefik-kop/commit/f009b84) docs: added more detail and logging around port selection
-- [2f18114](https://github.com/jittering/traefik-kop/commit/2f18114) test: added helloworld service for testing multiple bindings
-- [be636f7](https://github.com/jittering/traefik-kop/commit/be636f7) build: upgraded traefik to 2.8.4 (now supports go 1.18+)
+- [8c5a3f0](https://github.com/baragoon/traefik-kop/commit/8c5a3f0) build: bump actions/cache to v3
+- [dad6e90](https://github.com/baragoon/traefik-kop/commit/dad6e90) build: bump go version in github actions
+- [f009b84](https://github.com/baragoon/traefik-kop/commit/f009b84) docs: added more detail and logging around port selection
+- [2f18114](https://github.com/baragoon/traefik-kop/commit/2f18114) test: added helloworld service for testing multiple bindings
+- [be636f7](https://github.com/baragoon/traefik-kop/commit/be636f7) build: upgraded traefik to 2.8.4 (now supports go 1.18+)
 
 ## v0.12
 
@@ -170,24 +170,24 @@ The default interval of 60 seconds should be light so as not to cause any
 issues, however it can be adjusted as needed via the `KOP_POLL_INTERVAL` env var
 or set to 0 to disable it completely.
 
-[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.11...v0.12)
+[Full Changelog](https://github.com/baragoon/traefik-kop/compare/v0.11...v0.12)
 
-- [347352b](https://github.com/jittering/traefik-kop/commit/347352b) build: fix goreleaser tidy
-- [b6447c3](https://github.com/jittering/traefik-kop/commit/b6447c3) build: go mod tidy
-- [12ad255](https://github.com/jittering/traefik-kop/commit/12ad255) docs: added poll interval to readme
-- [10f7aab](https://github.com/jittering/traefik-kop/commit/10f7aab) feat: expose providers in case anyone wants to reuse
-- [5b58547](https://github.com/jittering/traefik-kop/commit/5b58547) feat: add log message when explicitly disabling polling
-- [02802d5](https://github.com/jittering/traefik-kop/commit/02802d5) feat: configurable poll interval (default 60)
-- [b2ef52b](https://github.com/jittering/traefik-kop/commit/b2ef52b) feat: combine providers into single config watcher
-- [07fe8aa](https://github.com/jittering/traefik-kop/commit/07fe8aa) feat: added polling provider as a workaround for healthcheck issue
-- [cc3854b](https://github.com/jittering/traefik-kop/commit/cc3854b) feat: added config for changing docker endpoint
-- [c309d40](https://github.com/jittering/traefik-kop/commit/c309d40) build: upgraded traefik lib to v2.7
-- [32c2df6](https://github.com/jittering/traefik-kop/commit/32c2df6) test: added pihole container (with builtin healthcheck)
-- [e770242](https://github.com/jittering/traefik-kop/commit/e770242) docs: updated changelog
+- [347352b](https://github.com/baragoon/traefik-kop/commit/347352b) build: fix goreleaser tidy
+- [b6447c3](https://github.com/baragoon/traefik-kop/commit/b6447c3) build: go mod tidy
+- [12ad255](https://github.com/baragoon/traefik-kop/commit/12ad255) docs: added poll interval to readme
+- [10f7aab](https://github.com/baragoon/traefik-kop/commit/10f7aab) feat: expose providers in case anyone wants to reuse
+- [5b58547](https://github.com/baragoon/traefik-kop/commit/5b58547) feat: add log message when explicitly disabling polling
+- [02802d5](https://github.com/baragoon/traefik-kop/commit/02802d5) feat: configurable poll interval (default 60)
+- [b2ef52b](https://github.com/baragoon/traefik-kop/commit/b2ef52b) feat: combine providers into single config watcher
+- [07fe8aa](https://github.com/baragoon/traefik-kop/commit/07fe8aa) feat: added polling provider as a workaround for healthcheck issue
+- [cc3854b](https://github.com/baragoon/traefik-kop/commit/cc3854b) feat: added config for changing docker endpoint
+- [c309d40](https://github.com/baragoon/traefik-kop/commit/c309d40) build: upgraded traefik lib to v2.7
+- [32c2df6](https://github.com/baragoon/traefik-kop/commit/32c2df6) test: added pihole container (with builtin healthcheck)
+- [e770242](https://github.com/baragoon/traefik-kop/commit/e770242) docs: updated changelog
 
 ## v0.11
 
-[Full Changelog](https://github.com/jittering/traefik-kop/compare/v0.10.1...v0.11)
+[Full Changelog](https://github.com/baragoon/traefik-kop/compare/v0.10.1...v0.11)
 
 ### Notes
 
@@ -197,11 +197,11 @@ configuration when the `traefik.docker.network` label is present.
 
 **Merged pull requests:**
 
-- Add support for `traefik.docker.network` [\#8](https://github.com/jittering/traefik-kop/pull/8) ([hcooper](https://github.com/hcooper))
+- Add support for `traefik.docker.network` [\#8](https://github.com/baragoon/traefik-kop/pull/8) ([hcooper](https://github.com/hcooper))
 
 ## v0.10.1
 
-- e0af6eb Merge pull request #7 from jittering/fix/port-detect
+- e0af6eb Merge pull request #7 from baragoon/fix/port-detect
 
 ## v0.10.0
 
@@ -217,7 +217,7 @@ configuration when the `traefik.docker.network` label is present.
 
 ## v0.9
 
-- 4bd7cd1 Merge pull request #2 from jittering/feature/detect-host-port
+- 4bd7cd1 Merge pull request #2 from baragoon/feature/detect-host-port
 
 ## v0.8.1
 
@@ -225,7 +225,7 @@ configuration when the `traefik.docker.network` label is present.
 
 ### Docker images
 
-- `docker pull ghcr.io/jittering/traefik-kop:0.8.1`
+- `docker pull ghcr.io/baragoon/traefik-kop:0.8.1`
 
 ## v0.8
 
@@ -233,4 +233,4 @@ configuration when the `traefik.docker.network` label is present.
 
 ### Docker images
 
-- `docker pull ghcr.io/jittering/traefik-kop:0.8`
+- `docker pull ghcr.io/baragoon/traefik-kop:0.8`

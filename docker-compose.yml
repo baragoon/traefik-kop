@@ -2,7 +2,7 @@ version: "3"
 
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

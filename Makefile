@@ -1,5 +1,5 @@
 
-PROJECT=ghcr.io/jittering/traefik-kop
+PROJECT=ghcr.io/baragoon/traefik-kop
 
 .DEFAULT_GOAL := run
 

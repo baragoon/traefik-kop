@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	traefikkop "github.com/jittering/traefik-kop"
+	traefikkop "github.com/baragoon/traefik-kop"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"

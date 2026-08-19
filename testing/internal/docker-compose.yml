@@ -1,5 +1,5 @@
 # Test case for issue #51
-# https://github.com/jittering/traefik-kop/issues/51
+# https://github.com/baragoon/traefik-kop/issues/51
 #
 # kop fails to start if outbound IP cannot be detected. uncomment BIND_IP to resolve.
 services:

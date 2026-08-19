@@ -70,7 +70,7 @@ Run `traefik-kop` on your other nodes via docker-compose:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -263,7 +263,7 @@ configure `kop` with a namespace:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -329,7 +329,7 @@ becomes
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -377,7 +377,7 @@ For example:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -400,7 +400,7 @@ always writes to the current master, even after a failover.
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/jittering/traefik-kop:latest"
+    image: "ghcr.io/baragoon/traefik-kop:latest"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -432,7 +432,7 @@ make update-changelog
 # or (replace tag below)
 docker run -it --rm -v "$(pwd)":/usr/local/src/your-app \
   githubchangeloggenerator/github-changelog-generator \
-  -u jittering -p traefik-kop --output "" \
+  -u baragoon -p traefik-kop --output "" \
   --since-tag v0.10.1
 ```
 

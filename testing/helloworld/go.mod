@@ -1,3 +1,3 @@
-module github.com/jittering/traefik-kop/testing/helloworld
+module github.com/baragoon/traefik-kop/testing/helloworld
 
 go 1.22.3
