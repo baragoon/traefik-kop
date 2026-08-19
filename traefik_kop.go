@@ -19,7 +19,6 @@ import (
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
 	"github.com/traefik/traefik/v3/pkg/provider/docker"
 	"github.com/traefik/traefik/v3/pkg/safe"
-	"github.com/traefik/traefik/v3/pkg/server"
 	"golang.org/x/exp/slices"
 )
 
@@ -150,7 +149,7 @@ func Start(config Config) {
 		panic(err)
 	}
 
-	watcher := server.NewConfigurationWatcher(
+	watcher := newConfigurationWatcher(
 		routinesPool,
 		multiProvider,
 		[]string{},
@@ -386,33 +385,33 @@ func replaceIPs(dc *dockerCache, conf *dynamic.Configuration, ip string) {
 // router. In this case, we need to use the router name to find the traefik
 // labels to identify the container.
 func getRouterOfService(conf *dynamic.Configuration, svcName string, svcType string) string {
-	svcName = stripDocker(svcName)
+	normalizedSvcName := stripDocker(svcName)
 	name := ""
 
 	if svcType == "http" {
 		for routerName, router := range conf.HTTP.Routers {
-			if router.Service == svcName {
+			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
 		}
 	} else if svcType == "tcp" {
 		for routerName, router := range conf.TCP.Routers {
-			if router.Service == svcName {
+			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
 		}
 	} else if svcType == "udp" {
 		for routerName, router := range conf.UDP.Routers {
-			if router.Service == svcName {
+			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
 		}
 	}
 
-	log.Debug().Msgf("found router '%s' for service %s", name, svcName)
+	log.Debug().Msgf("found router '%s' for service %s", name, normalizedSvcName)
 	return name
 }
 

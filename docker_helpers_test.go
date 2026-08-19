@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/safe"
-	"github.com/traefik/traefik/v3/pkg/server"
 )
 
 type testStore struct {
@@ -339,7 +338,7 @@ func processFileWithConfig(t *testing.T, store TraefikStore, config *Config, fil
 	handleConfigChange := createConfigHandler(*config, store, dp, dc)
 
 	routinesPool := safe.NewPool(context.Background())
-	watcher := server.NewConfigurationWatcher(
+	watcher := newConfigurationWatcher(
 		routinesPool,
 		dp,
 		[]string{},
