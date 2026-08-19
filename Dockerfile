@@ -1,14 +1,26 @@
-ARG TARGETPLATFORM
-ARG TARGETARCH
 # Lightweight stage to provide CA certificates
 FROM alpine:3.24 AS certs
 RUN apk add --no-cache ca-certificates
-# Final minimal runtime using distroless static
-FROM gcr.io/distroless/static
+
+# Final runtime: use a small shell-equipped base so we can choose the correct
+# architecture binary at container startup. This avoids relying on build-time
+# build args from the release pipeline which can vary between environments.
+FROM alpine:3.24
+RUN apk add --no-cache ca-certificates
 # Copy CA bundle from the certs stage so Go's TLS verification has system roots
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-# Copy platform-specific binary produced by the build pipeline
-# Use TARGETARCH (set by buildx) to select the correct per-architecture binary directory
-# Fallbacks/wildcards were picking the wrong binary; use explicit arch selection instead.
-COPY linux/${TARGETARCH}/traefik-kop /traefik-kop
-ENTRYPOINT ["/traefik-kop"]
+
+# Copy all known architecture binaries into distinct paths. Use explicit paths
+# so the build won't accidentally overwrite files when multiple archs are present
+# in the build context.
+COPY linux/amd64/traefik-kop /opt/traefik-kop/amd64/traefik-kop
+COPY linux/arm64/traefik-kop /opt/traefik-kop/arm64/traefik-kop
+
+# Add a small entrypoint that chooses the correct binary at runtime based on
+# uname -m. This keeps the image runnable even if the build context contained
+# multiple architectures.
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["-V"]
