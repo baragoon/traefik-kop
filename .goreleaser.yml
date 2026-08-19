@@ -42,6 +42,11 @@ dockers_v2:
       - "{{ if not .IsSnapshot }}{{ .Major }}.{{ .Minor }}{{ end }}"
       - "{{ if not .IsSnapshot }}latest{{ end }}"
     dockerfile: Dockerfile
+    # Ensure buildx is used for multi-arch builds and pass TARGETARCH explicitly so Dockerfile
+    # can rely on ${TARGETARCH} being defined during the build.
+    buildx: true
+    build_args:
+      - "TARGETARCH={{ .Arch }}"
     platforms:
       - linux/amd64
       # - linux/arm/v6
