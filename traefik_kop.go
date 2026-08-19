@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/config/label"
 	"github.com/traefik/traefik/v3/pkg/config/static"
 	"github.com/traefik/traefik/v3/pkg/provider"
 	"github.com/traefik/traefik/v3/pkg/provider/aggregator"
@@ -65,6 +66,7 @@ func createConfigHandler(config Config, store TraefikStore, dp *docker.Provider,
 			details: make(map[string]container.InspectResponse),
 		}
 
+		normalizeDefaultRouterServices(dc, &conf)
 		filterServices(dc, &conf, config.Namespace)
 
 		if !dp.UseBindPortIP && !config.SkipReplace {
@@ -384,27 +386,87 @@ func replaceIPs(dc *dockerCache, conf *dynamic.Configuration, ip string) {
 // It is possible that no traefik service was explicitly configured, only a
 // router. In this case, we need to use the router name to find the traefik
 // labels to identify the container.
+func normalizeDefaultRouterServices(dc *dockerCache, conf *dynamic.Configuration) {
+	if conf == nil {
+		return
+	}
+
+	if conf.HTTP != nil && len(conf.HTTP.Services) > 0 {
+		for svcName := range conf.HTTP.Services {
+			container, err := dc.findContainerByServiceName("http", svcName, stripDocker(svcName))
+			if err != nil || container.Config == nil || len(container.Config.Labels) == 0 {
+				continue
+			}
+
+			decoded, err := label.DecodeConfiguration(container.Config.Labels)
+			if err != nil || decoded == nil || decoded.HTTP == nil || len(decoded.HTTP.Routers) == 0 {
+				continue
+			}
+
+			if conf.HTTP.Routers == nil {
+				conf.HTTP.Routers = map[string]*dynamic.Router{}
+			}
+			for routerName, router := range decoded.HTTP.Routers {
+				if router == nil {
+					continue
+				}
+				if router.Service == "" {
+					router.Service = stripDocker(routerName)
+				}
+				if current, ok := conf.HTTP.Routers[routerName]; ok && current != nil {
+					if current.Service == "" {
+						current.Service = router.Service
+					}
+					if current.Rule == "" {
+						current.Rule = router.Rule
+					}
+					if current.TLS == nil && router.TLS != nil {
+						current.TLS = router.TLS
+					}
+					if len(current.Middlewares) == 0 && len(router.Middlewares) > 0 {
+						current.Middlewares = router.Middlewares
+					}
+					continue
+				}
+				conf.HTTP.Routers[routerName] = router
+			}
+		}
+	}
+}
+
 func getRouterOfService(conf *dynamic.Configuration, svcName string, svcType string) string {
 	normalizedSvcName := stripDocker(svcName)
 	name := ""
 
 	if svcType == "http" {
 		for routerName, router := range conf.HTTP.Routers {
-			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
+			if router == nil {
+				continue
+			}
+			if routerName == normalizedSvcName || stripDocker(routerName) == normalizedSvcName ||
+				router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
 		}
 	} else if svcType == "tcp" {
 		for routerName, router := range conf.TCP.Routers {
-			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
+			if router == nil {
+				continue
+			}
+			if routerName == normalizedSvcName || stripDocker(routerName) == normalizedSvcName ||
+				router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
 		}
 	} else if svcType == "udp" {
 		for routerName, router := range conf.UDP.Routers {
-			if router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
+			if router == nil {
+				continue
+			}
+			if routerName == normalizedSvcName || stripDocker(routerName) == normalizedSvcName ||
+				router.Service == normalizedSvcName || stripDocker(router.Service) == normalizedSvcName {
 				name = routerName
 				break
 			}
