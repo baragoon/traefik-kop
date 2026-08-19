@@ -35,7 +35,7 @@ changelog:
 
 dockers_v2:
   - images:
-      - "ghcr.io/jittering/{{ .ProjectName }}"
+      - "ghcr.io/baragoon/{{ .ProjectName }}"
     tags:
       - "{{ .Version }}"
       - "{{ if not .IsSnapshot }}{{ .Major }}.{{ .Minor }}{{ end }}"
@@ -49,8 +49,8 @@ dockers_v2:
     labels:
       "org.opencontainers.image.title": "{{ .ProjectName }}"
       "org.opencontainers.image.description": "{{ .ProjectName }}"
-      "org.opencontainers.image.url": "https://github.com/jittering/{{ .ProjectName }}"
-      "org.opencontainers.image.source": "https://github.com/jittering/{{ .ProjectName }}"
+      "org.opencontainers.image.url": "https://github.com/baragoon/{{ .ProjectName }}"
+      "org.opencontainers.image.source": "https://github.com/baragoon/{{ .ProjectName }}"
       "org.opencontainers.image.version": "{{ .Version }}"
       "org.opencontainers.image.created": "{{ .Date }}"
       "org.opencontainers.image.revision": "{{ .FullCommit }}"
