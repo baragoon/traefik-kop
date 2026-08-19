@@ -124,6 +124,7 @@ GLOBAL OPTIONS:
    --redis-pass value     Redis password (if needed) [$REDIS_PASS]
    --redis-db value       Redis DB number (default: 0) [$REDIS_DB]
    --redis-tls            Connect to Redis over TLS (default: false) [$REDIS_TLS]
+   --redis-tls-server-name value  Override the TLS SNI hostname for Redis (defaults to the Redis address host) [$REDIS_TLS_SERVER_NAME]
    --redis-ttl value      Redis TTL (in seconds) (default: 0) [$REDIS_TTL]
    --redis-sentinel-addrs value   Comma-separated list of Redis Sentinel addresses (e.g., host1:26379,host2:26379) [$REDIS_SENTINEL_ADDRS]
    --redis-sentinel-master value  Redis Sentinel master name [$REDIS_SENTINEL_MASTER]
@@ -137,7 +138,7 @@ GLOBAL OPTIONS:
    --version, -V          Print the version (default: false)
 ```
 
-Most important are the `bind-ip`/`bind-interface` and `redis-addr` flags. For TLS-enabled Redis endpoints, also set `--redis-tls` (or `REDIS_TLS=true`) alongside the address and credentials.
+Most important are the `bind-ip`/`bind-interface` and `redis-addr` flags. For TLS-enabled Redis endpoints, also set `--redis-tls` (or `REDIS_TLS=true`) alongside the address and credentials. If the Redis certificate is for a different hostname than the connection target (for example you connect to an internal service name or IP behind Traefik), set `--redis-tls-server-name` / `REDIS_TLS_SERVER_NAME` to the certificate hostname so the TLS SNI matches the cert.
 
 ## IP Binding
 

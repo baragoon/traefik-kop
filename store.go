@@ -45,7 +45,7 @@ type RedisStore struct {
 	lastConfig *dynamic.Configuration
 }
 
-func redisTLSConfigForAddr(addr string) *tls.Config {
+func redisTLSConfigForAddr(addr string, tlsServerName ...string) *tls.Config {
 	if addr == "" {
 		return nil
 	}
@@ -54,6 +54,12 @@ func redisTLSConfigForAddr(addr string) *tls.Config {
 	if parsedHost, _, err := net.SplitHostPort(addr); err == nil && parsedHost != "" {
 		host = parsedHost
 	}
+	if len(tlsServerName) > 0 {
+		overrideName := strings.TrimSpace(tlsServerName[0])
+		if overrideName != "" {
+			host = overrideName
+		}
+	}
 
 	return &tls.Config{
 		ServerName: host,
@@ -61,9 +67,9 @@ func redisTLSConfigForAddr(addr string) *tls.Config {
 	}
 }
 
-func redisDialer() func(ctx context.Context, network, addr string) (net.Conn, error) {
+func redisDialer(tlsServerName ...string) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		tlsConfig := redisTLSConfigForAddr(addr)
+		tlsConfig := redisTLSConfigForAddr(addr, tlsServerName...)
 		if tlsConfig == nil {
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		}
@@ -71,12 +77,12 @@ func redisDialer() func(ctx context.Context, network, addr string) (net.Conn, er
 	}
 }
 
-func NewRedisStore(hostname string, addr string, ttl int, user string, pass string, db int, sentinelAddrs []string, sentinelMaster string, tlsEnabled bool) TraefikStore {
+func NewRedisStore(hostname string, addr string, ttl int, user string, pass string, db int, sentinelAddrs []string, sentinelMaster string, tlsEnabled bool, tlsServerName ...string) TraefikStore {
 	var client *redis.Client
 
 	directTLSConfig := (*tls.Config)(nil)
 	if tlsEnabled {
-		directTLSConfig = redisTLSConfigForAddr(addr)
+		directTLSConfig = redisTLSConfigForAddr(addr, tlsServerName...)
 	}
 
 	if len(sentinelAddrs) > 0 && sentinelMaster != "" {
@@ -90,7 +96,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 			DB:              db,
 		}
 		if tlsEnabled {
-			failoverOpts.Dialer = redisDialer()
+			failoverOpts.Dialer = redisDialer(tlsServerName...)
 		}
 		client = redis.NewFailoverClient(failoverOpts)
 	} else {

@@ -16,7 +16,6 @@ require (
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
 	github.com/gofiber/fiber/v3 v3.5.0
-	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/rs/zerolog v1.35.1
@@ -25,7 +24,6 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.7.11
-	github.com/urfave/cli/v3 v3.11.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/valyala/fasthttp v1.73.0
 	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
@@ -339,7 +337,6 @@ require (
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/yandex-cloud/go-genproto v0.95.0 // indirect
 	github.com/yandex-cloud/go-sdk/services/dns v0.0.65 // indirect
 	github.com/yandex-cloud/go-sdk/v2 v2.136.0 // indirect

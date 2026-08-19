@@ -104,6 +104,11 @@ func flags() {
 				Value:   false,
 				EnvVars: []string{"REDIS_TLS"},
 			},
+			&cli.StringFlag{
+				Name:    "redis-tls-server-name",
+				Usage:   "Override the TLS ServerName used when connecting to Redis over TLS; defaults to the Redis address host",
+				EnvVars: []string{"REDIS_TLS_SERVER_NAME"},
+			},
 			&cli.IntFlag{
 				Name:    "redis-ttl",
 				Usage:   "Redis TTL (in seconds)",
@@ -218,6 +223,7 @@ func doStart(c *cli.Context) error {
 		RedisPass:           c.String("redis-pass"),
 		RedisDB:             c.Int("redis-db"),
 		RedisTLS:            c.Bool("redis-tls"),
+		RedisTLSServerName:  strings.TrimSpace(c.String("redis-tls-server-name")),
 		RedisTTL:            c.Int("redis-ttl"),
 		RedisSentinelAddrs:  sentinelAddrs,
 		RedisSentinelMaster: c.String("redis-sentinel-master"),
