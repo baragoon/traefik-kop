@@ -8,12 +8,6 @@
       "matchDatasources": ["go"],
       "matchPackageNames": ["github.com/containous/go-http-auth"],
       "enabled": false
-    },
-    {
-      "matchManagers": ["gomod"],
-      "matchDepNames": ["go"],
-      "matchDepTypes": ["golang"],
-      "rangeStrategy": "bump"
     }
   ]
 }
