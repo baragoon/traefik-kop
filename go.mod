@@ -11,7 +11,7 @@ replace (
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/alicebob/miniredis/v2 v2.38.0
-	github.com/docker/cli v29.0.0+incompatible
+	github.com/docker/cli v29.7.2+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
