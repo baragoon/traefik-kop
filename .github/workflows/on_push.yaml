@@ -26,7 +26,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # so we get proper snapshot version info
           fetch-depth: 0
