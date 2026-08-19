@@ -15,7 +15,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
-	github.com/gofiber/fiber/v3 v3.5.0
+	github.com/gofiber/fiber/v2 v2.52.15
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.22.0
