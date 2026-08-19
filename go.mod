@@ -402,3 +402,9 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+// Traefik publishes dynamic/ext as a sub-module that is unresolvable by
+// downstream consumers (its directory layout doesn't match the module path).
+// See https://github.com/traefik/traefik/issues/13115. The local stub provides
+// the same two empty types so go mod tidy and tests can resolve.
+replace github.com/traefik/traefik/dynamic/ext => ./hack/dynamic-ext
