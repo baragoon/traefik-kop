@@ -23,7 +23,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.11.1
-	github.com/traefik/paerser v0.2.2
+	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.6.1
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/urfave/cli/v3 v3.11.0
