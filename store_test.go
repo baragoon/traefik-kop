@@ -1,6 +1,7 @@
 package traefikkop
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -55,7 +56,7 @@ func Test_redisStore(t *testing.T) {
 	go server.Start()
 	defer server.ShutDown()
 
-	store := NewRedisStore("localhost", fmt.Sprintf("localhost:%d", port), 0, "", "", 0, nil, "")
+	store := NewRedisStore("localhost", fmt.Sprintf("localhost:%d", port), 0, "", "", 0, nil, "", false)
 	processFileWithConfig(t, store, nil, "hellodetect.yml")
 	assertServiceIPs(t, store, []svc{
 		{"hello-detect", "http", "http://192.168.100.100:5577"},
@@ -63,12 +64,36 @@ func Test_redisStore(t *testing.T) {
 	})
 }
 
+func Test_redisStoreTLSOpts(t *testing.T) {
+	store := NewRedisStore("redis.domain", "redis.domain:443", 0, "", "", 0, nil, "", true)
+	rs, ok := store.(*RedisStore)
+	require.True(t, ok)
+	require.NotNil(t, rs.client.Options().TLSConfig)
+	assert.Equal(t, "redis.domain", rs.client.Options().TLSConfig.ServerName)
+	assert.Equal(t, uint16(tls.VersionTLS12), rs.client.Options().TLSConfig.MinVersion)
+
+	plainStore := NewRedisStore("localhost", "localhost:6379", 0, "", "", 0, nil, "", false)
+	plainRS, ok := plainStore.(*RedisStore)
+	require.True(t, ok)
+	assert.Nil(t, plainRS.client.Options().TLSConfig)
+
+	directConfig := redisTLSConfigForAddr("redis.domain:443")
+	require.NotNil(t, directConfig)
+	assert.Equal(t, "redis.domain", directConfig.ServerName)
+	assert.Equal(t, uint16(tls.VersionTLS12), directConfig.MinVersion)
+
+	sentinelConfig := redisTLSConfigForAddr("sentinel.domain:26379")
+	require.NotNil(t, sentinelConfig)
+	assert.Equal(t, "sentinel.domain", sentinelConfig.ServerName)
+	assert.NotEqual(t, directConfig.ServerName, sentinelConfig.ServerName)
+}
+
 func Test_redisStoreRemovesStaleServerKeysOnUpdate(t *testing.T) {
 	server, err := miniredis.Run()
 	require.NoError(t, err)
 	defer server.Close()
 
-	store := NewRedisStore("localhost", server.Addr(), 0, "", "", 0, nil, "")
+	store := NewRedisStore("localhost", server.Addr(), 0, "", "", 0, nil, "", false)
 
 	initial := &dynamic.Configuration{}
 	err = json.Unmarshal([]byte(`{

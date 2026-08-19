@@ -65,7 +65,7 @@ func (s *testStore) Gets(key string) (map[string]string, error) {
 		return nil, nil
 	}
 	vals := make(map[string]string)
-	for k, _ := range s.kv {
+	for k := range s.kv {
 		if glob.Glob(key, k) {
 			vals[k], _ = s.Get(k)
 		}
@@ -373,10 +373,6 @@ func processFileWithConfig(t *testing.T, store TraefikStore, config *Config, fil
 	}
 
 	return store
-}
-
-func assertServiceIP(t *testing.T, store *testStore, serviceName string, ip string) {
-	assert.Equal(t, ip, store.kv[fmt.Sprintf("traefik/http/services/%s/loadBalancer/servers/0/url", serviceName)])
 }
 
 type svc struct {
