@@ -25,7 +25,7 @@ require (
 	github.com/traefik/paerser v0.2.2
 	github.com/traefik/traefik/v3 v3.6.1
 	github.com/urfave/cli/v2 v2.27.7
-	github.com/valyala/fasthttp v1.68.0
+	github.com/valyala/fasthttp v1.73.0
 	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -67,7 +67,7 @@ require (
 	github.com/alibabacloud-go/tea v1.3.13 // indirect
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7 // indirect
 	github.com/aliyun/credentials-go v1.4.7 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
+	github.com/andybalholm/brotli v1.2.2 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.4 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.31.15 // indirect
@@ -201,7 +201,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.13-0.20220915233716-71ac16282d12 // indirect
 	github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.19.1 // indirect
 	github.com/kolo/xmlrpc v0.0.0-20220921171641-a4b6fa1dd06b // indirect
 	github.com/kvtools/consul v1.0.2 // indirect
 	github.com/kvtools/etcdv3 v1.0.3 // indirect
