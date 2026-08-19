@@ -51,7 +51,7 @@ jobs:
           cache: false
 
       - name: Remote cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         if: ${{ runner.environment == 'github-hosted' }}
         with:
           path: |
