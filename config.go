@@ -17,16 +17,17 @@ type Config struct {
 	DockerHost   string
 
 	// prefix for traefik labels to accept
-	DockerPrefix string
-	Hostname     string
-	BindIP       string
-	SkipReplace  bool
-	RedisAddr    string
-	RedisTTL     int
-	RedisUser    string
-	RedisPass    string
-	RedisDB      int
-	RedisTLS     bool
+	DockerPrefix       string
+	Hostname           string
+	BindIP             string
+	SkipReplace        bool
+	RedisAddr          string
+	RedisTTL           int
+	RedisUser          string
+	RedisPass          string
+	RedisDB            int
+	RedisTLS           bool
+	RedisTLSServerName string
 
 	// Redis Sentinel
 	RedisSentinelAddrs  []string

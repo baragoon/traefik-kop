@@ -72,6 +72,12 @@ func Test_redisStoreTLSOpts(t *testing.T) {
 	assert.Equal(t, "redis.domain", rs.client.Options().TLSConfig.ServerName)
 	assert.Equal(t, uint16(tls.VersionTLS12), rs.client.Options().TLSConfig.MinVersion)
 
+	overrideStore := NewRedisStore("redis.domain", "192.168.90.3:6379", 0, "", "", 0, nil, "", true, "redis.example.com")
+	overrideRS, ok := overrideStore.(*RedisStore)
+	require.True(t, ok)
+	require.NotNil(t, overrideRS.client.Options().TLSConfig)
+	assert.Equal(t, "redis.example.com", overrideRS.client.Options().TLSConfig.ServerName)
+
 	plainStore := NewRedisStore("localhost", "localhost:6379", 0, "", "", 0, nil, "", false)
 	plainRS, ok := plainStore.(*RedisStore)
 	require.True(t, ok)
@@ -81,6 +87,10 @@ func Test_redisStoreTLSOpts(t *testing.T) {
 	require.NotNil(t, directConfig)
 	assert.Equal(t, "redis.domain", directConfig.ServerName)
 	assert.Equal(t, uint16(tls.VersionTLS12), directConfig.MinVersion)
+
+	overrideConfig := redisTLSConfigForAddr("192.168.90.3:6379", "redis.example.com")
+	require.NotNil(t, overrideConfig)
+	assert.Equal(t, "redis.example.com", overrideConfig.ServerName)
 
 	sentinelConfig := redisTLSConfigForAddr("sentinel.domain:26379")
 	require.NotNil(t, sentinelConfig)
