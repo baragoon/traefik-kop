@@ -21,8 +21,8 @@ require (
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/rs/zerolog v1.34.0
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.11.1
+	github.com/sirupsen/logrus v1.10.1
+	github.com/stretchr/testify v1.12.0
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.6.1
 	github.com/urfave/cli/v2 v2.27.7
@@ -300,7 +300,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stealthrocket/wasi-go v0.8.0 // indirect
 	github.com/stealthrocket/wazergo v0.19.1 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
+	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.1.48 // indirect
 	github.com/tetratelabs/wazero v1.8.0 // indirect
