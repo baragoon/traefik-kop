@@ -114,25 +114,8 @@ jobs:
           # Optionally also tag 'latest' or versioned tags mapping to the multi-arch manifest
           docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:latest $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
 
-      - name: Push docker images
-        if: ${{ github.ref == 'refs/heads/main' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        run: |
-          set -eo pipefail
-          echo "Finding built traefik-kop images..."
-          IMAGES=$(docker images --format '{{ .Repository }}:{{ .Tag }}' | grep traefik-kop || true)
-          if [ -z "$IMAGES" ]; then
-            echo "No local traefik-kop images found to push; skipping."
-          else
-            echo "$IMAGES" | grep -v none | while read -r IMG; do
-              if [ -n "$IMG" ]; then
-                echo "Pushing $IMG"
-                docker push "$IMG"
-              fi
-            done
-          fi
-
+      # 'Push docker images' step removed: images are pushed by the buildx steps above.
+      # This avoids redundant/empty pushes and potential CI confusion.
       - name: Cleanup local docker images
         if: ${{ runner.environment == 'self-hosted' }}
         run: |
