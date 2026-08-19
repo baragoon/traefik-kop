@@ -24,7 +24,7 @@ require (
 	github.com/sirupsen/logrus v1.10.1
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
-	github.com/traefik/traefik/v3 v3.6.25
+	github.com/traefik/traefik/v3 v3.7.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/valyala/fasthttp v1.73.0
