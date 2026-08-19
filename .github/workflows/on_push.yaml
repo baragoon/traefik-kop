@@ -119,11 +119,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         run: |
-          # Manually push docker images
-          docker images --format '{{ .Repository }}:{{ .Tag }}' \
-            | grep traefik-kop \
-            | grep -v none \
-            | xargs -n 1 docker push
+          set -eo pipefail
+          echo "Finding built traefik-kop images..."
+          IMAGES=$(docker images --format '{{ .Repository }}:{{ .Tag }}' | grep traefik-kop || true)
+          if [ -z "$IMAGES" ]; then
+            echo "No local traefik-kop images found to push; skipping."
+          else
+            echo "$IMAGES" | grep -v none | while read -r IMG; do
+              if [ -n "$IMG" ]; then
+                echo "Pushing $IMG"
+                docker push "$IMG"
+              fi
+            done
+          fi
 
       - name: Cleanup local docker images
         if: ${{ runner.environment == 'self-hosted' }}
