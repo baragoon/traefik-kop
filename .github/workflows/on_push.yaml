@@ -92,7 +92,7 @@ jobs:
           # goreleaser versions do not support --skip-publish on 'release'.
           goreleaser build --clean --snapshot
 
-      - name: Build and push multi-arch Docker image
+      - name: Build multi-arch Docker image
         env:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
@@ -106,11 +106,11 @@ jobs:
           cp dist/*_linux_arm64*/traefik-kop docker-context/linux/arm64/traefik-kop
 
           # Build and push images per-arch specifying the BIN_PATH build-arg so the Dockerfile copies the correct file
-          docker buildx build --platform linux/amd64 -t $REGISTRY/$IMAGE_NAME:${SHA}-amd64 --push -f Dockerfile --build-arg BIN_PATH=linux/amd64/traefik-kop docker-context
-          docker buildx build --platform linux/arm64 -t $REGISTRY/$IMAGE_NAME:${SHA}-arm64 --push -f Dockerfile --build-arg BIN_PATH=linux/arm64/traefik-kop docker-context
+          docker buildx build --platform linux/amd64 -t $REGISTRY/$IMAGE_NAME:${SHA}-amd64 -f Dockerfile --build-arg BIN_PATH=linux/amd64/traefik-kop docker-context
+          docker buildx build --platform linux/arm64 -t $REGISTRY/$IMAGE_NAME:${SHA}-arm64 -f Dockerfile --build-arg BIN_PATH=linux/arm64/traefik-kop docker-context
 
-          # Create a multi-arch manifest tag that references the per-arch images
-          docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:${SHA} $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
+          # # Create a multi-arch manifest tag that references the per-arch images
+          # docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:${SHA} $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
           # # Optionally also tag 'latest' or versioned tags mapping to the multi-arch manifest
           # docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:latest $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
 
