@@ -111,8 +111,8 @@ jobs:
 
           # Create a multi-arch manifest tag that references the per-arch images
           docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:${SHA} $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
-          # Optionally also tag 'latest' or versioned tags mapping to the multi-arch manifest
-          docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:latest $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
+          # # Optionally also tag 'latest' or versioned tags mapping to the multi-arch manifest
+          # docker buildx imagetools create --tag $REGISTRY/$IMAGE_NAME:latest $REGISTRY/$IMAGE_NAME:${SHA}-amd64 $REGISTRY/$IMAGE_NAME:${SHA}-arm64
 
       # 'Push docker images' step removed: images are pushed by the buildx steps above.
       # This avoids redundant/empty pushes and potential CI confusion.
