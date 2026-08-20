@@ -84,18 +84,18 @@ jobs:
           version: latest
           args: release --clean
 
-      - name: Cleanup local docker images
-        if: ${{ runner.environment == 'self-hosted' }}
-        run: |
-          # traefik-kop images
-          docker images --filter "reference=ghcr.io/baragoon/traefik-kop" -q \
-            | sort -u \
-            | xargs -r docker rmi -f
+      # - name: Cleanup local docker images
+      #   if: ${{ runner.environment == 'self-hosted' }}
+      #   run: |
+      #     # traefik-kop images
+      #     docker images --filter "reference=ghcr.io/baragoon/traefik-kop" -q \
+      #       | sort -u \
+      #       | xargs -r docker rmi -f
 
-          # dangling runner images
-          docker images --filter "reference=myoung34/github-runner" --filter "dangling=true" -q \
-            | sort -u \
-            | xargs -r docker rmi -f
+      #     # dangling runner images
+      #     docker images --filter "reference=myoung34/github-runner" --filter "dangling=true" -q \
+      #       | sort -u \
+      #       | xargs -r docker rmi -f
 
       - name: Cleanup old images from registry
         uses: dataaxiom/ghcr-cleanup-action@v1
