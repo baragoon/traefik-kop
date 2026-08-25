@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v3"
+	"gotest.tools/gotestsum/cmd"
 )
 
 const defaultDockerHost = "unix:///var/run/docker.sock"
@@ -42,11 +44,11 @@ func flags() {
 		Aliases: []string{"V"},
 		Usage:   "Print the version",
 	}
-	cli.VersionPrinter = func(c *cli.Context) {
+	cli.VersionPrinter = func(ctx context.Context, cmd *cli.Command) {
 		printVersion(c)
 	}
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "traefik-kop",
 		Usage:   "A dynamic docker->redis->traefik discovery agent",
 		Version: version,
@@ -161,7 +163,7 @@ func flags() {
 		},
 	}
 
-	err := app.Run(os.Args)
+	err := cmd.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Application error")
 	}
