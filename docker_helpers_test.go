@@ -20,8 +20,8 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/go-connections/nat"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/ryanuber/go-glob"
 	"github.com/stretchr/testify/assert"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -137,7 +137,7 @@ func createHTTPServer() (*fiber.App, string) {
 	app := fiber.New()
 	app.Use(logger.New())
 
-	app.Get("/v*/version", func(c *fiber.Ctx) error {
+	app.Get("/v*/version", func(c fiber.Ctx) error {
 		version, err := dockerAPI.ServerVersion(c.Context())
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -145,7 +145,7 @@ func createHTTPServer() (*fiber.App, string) {
 		return c.JSON(version)
 	})
 
-	app.Get("/v*/containers/json", func(c *fiber.Ctx) error {
+	app.Get("/v*/containers/json", func(c fiber.Ctx) error {
 		containers, err := dockerAPI.ContainerList(c.Context(), container.ListOptions{})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -153,7 +153,7 @@ func createHTTPServer() (*fiber.App, string) {
 		return c.JSON(containers)
 	})
 
-	app.Get("/v*/containers/:id/json", func(c *fiber.Ctx) error {
+	app.Get("/v*/containers/:id/json", func(c fiber.Ctx) error {
 		container, err := dockerAPI.ContainerInspect(c.Context(), c.Params("id"))
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -164,7 +164,7 @@ func createHTTPServer() (*fiber.App, string) {
 		return c.JSON(container)
 	})
 
-	app.Get("/v*/events", func(c *fiber.Ctx) error {
+	app.Get("/v*/events", func(c fiber.Ctx) error {
 		return nil
 	})
 
