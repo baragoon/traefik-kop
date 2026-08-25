@@ -16,7 +16,6 @@ require (
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
 	github.com/gofiber/fiber/v2 v2.52.15
-	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/rs/zerolog v1.35.1
@@ -25,7 +24,6 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.7.11
-	github.com/urfave/cli/v2 v2.3.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/valyala/fasthttp v1.73.0
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
@@ -101,7 +99,6 @@ require (
 	github.com/containous/alice v0.0.0-20181107144136-d83ebdd94cbd // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd/v22 v22.7.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deepmap/oapi-codegen v1.9.1 // indirect
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
@@ -284,7 +281,6 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robertkrimen/otto v0.5.1 // indirect
 	github.com/rs/cors v1.7.0 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sacloud/api-client-go v0.3.5 // indirect
 	github.com/sacloud/go-http v0.1.9 // indirect
 	github.com/sacloud/iaas-api-go v1.29.2 // indirect

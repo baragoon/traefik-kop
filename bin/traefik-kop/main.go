@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -10,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const defaultDockerHost = "unix:///var/run/docker.sock"
@@ -21,9 +22,8 @@ var (
 	date    string
 )
 
-func printVersion(c *cli.Context) error {
-	fmt.Printf("%s version %s (commit: %s, built %s)\n", c.App.Name, c.App.Version, commit, date)
-	return nil
+func printVersion(cmd *cli.Command) {
+	fmt.Printf("%s version %s (commit: %s, built %s)\n", cmd.Name, cmd.Version, commit, date)
 }
 
 func flags() {
@@ -42,11 +42,9 @@ func flags() {
 		Aliases: []string{"V"},
 		Usage:   "Print the version",
 	}
-	cli.VersionPrinter = func(c *cli.Context) {
-		printVersion(c)
-	}
+	cli.VersionPrinter = printVersion
 
-	app := &cli.App{
+	app := &cli.Command{
 		Name:    "traefik-kop",
 		Usage:   "A dynamic docker->redis->traefik discovery agent",
 		Version: version,
@@ -58,110 +56,110 @@ func flags() {
 				Name:    "hostname",
 				Usage:   "Hostname to identify this node in redis",
 				Value:   getHostname(),
-				EnvVars: []string{"KOP_HOSTNAME"},
+				Sources: cli.EnvVars("KOP_HOSTNAME"),
 			},
 			&cli.StringFlag{
 				Name:    "bind-ip",
 				Usage:   "IP address to bind services to",
-				EnvVars: []string{"BIND_IP"},
+				Sources: cli.EnvVars("BIND_IP"),
 			},
 			&cli.StringFlag{
 				Name:    "bind-interface",
 				Usage:   "Network interface to derive bind IP (overrides auto-detect)",
-				EnvVars: []string{"BIND_INTERFACE"},
+				Sources: cli.EnvVars("BIND_INTERFACE"),
 			},
 			&cli.BoolFlag{
 				Name:    "skip-replace",
 				Usage:   "Disable custom IP replacement",
-				EnvVars: []string{"SKIP_REPLACE"},
+				Sources: cli.EnvVars("SKIP_REPLACE"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-addr",
 				Usage:   "Redis address",
 				Value:   "127.0.0.1:6379",
-				EnvVars: []string{"REDIS_ADDR"},
+				Sources: cli.EnvVars("REDIS_ADDR"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-user",
 				Usage:   "Redis username",
 				Value:   "default",
-				EnvVars: []string{"REDIS_USER"},
+				Sources: cli.EnvVars("REDIS_USER"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-pass",
 				Usage:   "Redis password (if needed)",
-				EnvVars: []string{"REDIS_PASS"},
+				Sources: cli.EnvVars("REDIS_PASS"),
 			},
 			&cli.IntFlag{
 				Name:    "redis-db",
 				Usage:   "Redis DB number",
 				Value:   0,
-				EnvVars: []string{"REDIS_DB"},
+				Sources: cli.EnvVars("REDIS_DB"),
 			},
 			&cli.BoolFlag{
 				Name:    "redis-tls",
 				Usage:   "Connect to Redis over TLS",
 				Value:   false,
-				EnvVars: []string{"REDIS_TLS"},
+				Sources: cli.EnvVars("REDIS_TLS"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-tls-server-name",
 				Usage:   "Override the TLS ServerName used when connecting to Redis over TLS; defaults to the Redis address host",
-				EnvVars: []string{"REDIS_TLS_SERVER_NAME"},
+				Sources: cli.EnvVars("REDIS_TLS_SERVER_NAME"),
 			},
 			&cli.IntFlag{
 				Name:    "redis-ttl",
 				Usage:   "Redis TTL (in seconds)",
 				Value:   0,
-				EnvVars: []string{"REDIS_TTL"},
+				Sources: cli.EnvVars("REDIS_TTL"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-sentinel-addrs",
 				Usage:   "Comma-separated list of Redis Sentinel addresses (e.g., host1:26379,host2:26379)",
-				EnvVars: []string{"REDIS_SENTINEL_ADDRS"},
+				Sources: cli.EnvVars("REDIS_SENTINEL_ADDRS"),
 			},
 			&cli.StringFlag{
 				Name:    "redis-sentinel-master",
 				Usage:   "Redis Sentinel master name",
-				EnvVars: []string{"REDIS_SENTINEL_MASTER"},
+				Sources: cli.EnvVars("REDIS_SENTINEL_MASTER"),
 			},
 			&cli.StringFlag{
 				Name:    "docker-host",
 				Usage:   "Docker endpoint",
 				Value:   defaultDockerHost,
-				EnvVars: []string{"DOCKER_ADDR", "DOCKER_HOST"},
+				Sources: cli.EnvVars("DOCKER_ADDR", "DOCKER_HOST"),
 			},
 			&cli.StringFlag{
 				Name:    "docker-config",
 				Usage:   "Docker provider config (file must end in .yaml)",
-				EnvVars: []string{"DOCKER_CONFIG"},
+				Sources: cli.EnvVars("DOCKER_CONFIG"),
 			},
 			&cli.StringFlag{
 				Name:    "docker-prefix",
 				Usage:   "Docker label prefix",
-				EnvVars: []string{"DOCKER_PREFIX"},
+				Sources: cli.EnvVars("DOCKER_PREFIX"),
 			},
 			&cli.Int64Flag{
 				Name:    "poll-interval",
 				Usage:   "Poll interval for refreshing container list",
 				Value:   60,
-				EnvVars: []string{"KOP_POLL_INTERVAL"},
+				Sources: cli.EnvVars("KOP_POLL_INTERVAL"),
 			},
 			&cli.StringFlag{
 				Name:    "namespace",
 				Usage:   "Namespace to process containers for",
-				EnvVars: []string{"NAMESPACE"},
+				Sources: cli.EnvVars("NAMESPACE"),
 			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Usage:   "Enable debug logging",
 				Value:   false,
-				EnvVars: []string{"VERBOSE", "DEBUG"},
+				Sources: cli.EnvVars("VERBOSE", "DEBUG"),
 			},
 		},
 	}
 
-	err := app.Run(os.Args)
+	err := app.Run(context.Background(), os.Args)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Application error")
 	}
@@ -200,37 +198,37 @@ func splitStringArr(str string) []string {
 	return []string{}
 }
 
-func doStart(c *cli.Context) error {
+func doStart(ctx context.Context, cmd *cli.Command) error {
 	traefikkop.Version = version
 
-	namespaces := splitStringArr(c.String("namespace"))
+	namespaces := splitStringArr(cmd.String("namespace"))
 
 	// Determine bind IP: precedence -> explicit --bind-ip -> --bind-interface -> auto-detect
-	bindIP := strings.TrimSpace(c.String("bind-ip"))
+	bindIP := strings.TrimSpace(cmd.String("bind-ip"))
 	if bindIP == "" {
-		iface := strings.TrimSpace(c.String("bind-interface"))
+		iface := strings.TrimSpace(cmd.String("bind-interface"))
 		bindIP = getDefaultIP(iface)
 	}
 
-	sentinelAddrs := splitStringArr(c.String("redis-sentinel-addrs"))
+	sentinelAddrs := splitStringArr(cmd.String("redis-sentinel-addrs"))
 
 	config := traefikkop.Config{
-		Hostname:            c.String("hostname"),
+		Hostname:            cmd.String("hostname"),
 		BindIP:              bindIP,
-		SkipReplace:         c.Bool("skip-replace"),
-		RedisAddr:           c.String("redis-addr"),
-		RedisUser:           c.String("redis-user"),
-		RedisPass:           c.String("redis-pass"),
-		RedisDB:             c.Int("redis-db"),
-		RedisTLS:            c.Bool("redis-tls"),
-		RedisTLSServerName:  strings.TrimSpace(c.String("redis-tls-server-name")),
-		RedisTTL:            c.Int("redis-ttl"),
+		SkipReplace:         cmd.Bool("skip-replace"),
+		RedisAddr:           cmd.String("redis-addr"),
+		RedisUser:           cmd.String("redis-user"),
+		RedisPass:           cmd.String("redis-pass"),
+		RedisDB:             int(cmd.Int("redis-db")),
+		RedisTLS:            cmd.Bool("redis-tls"),
+		RedisTLSServerName:  strings.TrimSpace(cmd.String("redis-tls-server-name")),
+		RedisTTL:            int(cmd.Int("redis-ttl")),
 		RedisSentinelAddrs:  sentinelAddrs,
-		RedisSentinelMaster: c.String("redis-sentinel-master"),
-		DockerHost:          c.String("docker-host"),
-		DockerConfig:        c.String("docker-config"),
-		DockerPrefix:        c.String("docker-prefix"),
-		PollInterval:        c.Int64("poll-interval"),
+		RedisSentinelMaster: cmd.String("redis-sentinel-master"),
+		DockerHost:          cmd.String("docker-host"),
+		DockerConfig:        cmd.String("docker-config"),
+		DockerPrefix:        cmd.String("docker-prefix"),
+		PollInterval:        cmd.Int64("poll-interval"),
 		Namespace:           namespaces,
 	}
 
@@ -253,7 +251,7 @@ func doStart(c *cli.Context) error {
 		}
 	}
 
-	setupLogging(c.Bool("verbose"))
+	setupLogging(cmd.Bool("verbose"))
 	log.Debug().Msgf("using traefik-kop config: %s", fmt.Sprintf("%+v", config))
 
 	traefikkop.Start(config)
