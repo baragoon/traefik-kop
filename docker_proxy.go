@@ -1,3 +1,73 @@
+package traefikkop
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/events"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/rs/zerolog/log"
+)
+
+func getAvailablePort() (net.Listener, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return nil, err
+	}
+
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return l, nil
+}
+
+// DockerProxyServer is a proxy server that filters docker labels based on a prefix
+type DockerProxyServer struct {
+	upstream    client.APIClient
+	labelPrefix string
+}
+
+func createProxy(upstream client.APIClient, labelPrefix string) *DockerProxyServer {
+	if labelPrefix != "" && !strings.HasSuffix(labelPrefix, ".") {
+		labelPrefix += "."
+	}
+	return &DockerProxyServer{
+		upstream:    upstream,
+		labelPrefix: labelPrefix,
+	}
+}
+
+func (s *DockerProxyServer) filterLabels(labels map[string]string) map[string]string {
+	if s.labelPrefix == "" || labels == nil {
+		return labels
+	}
+
+	newLabels := make(map[string]string)
+
+	for k, v := range labels {
+		if strings.HasPrefix(k, s.labelPrefix) {
+			// strip prefix from our labels
+			newKey := strings.TrimPrefix(k, s.labelPrefix)
+			newLabels[newKey] = v
+		} else if !strings.HasPrefix(k, "traefik.") {
+			// keep every other than traefik.* labels as is
+			newLabels[k] = v
+		}
+	}
+
+	return newLabels
+}
+
 func (s *DockerProxyServer) handleVersion(c fiber.Ctx) error {
 	v, err := s.upstream.ServerVersion(context.Background())
 	if err != nil {
@@ -46,7 +116,8 @@ func (s *DockerProxyServer) handleEvents(c fiber.Ctx) error {
 
 	eventsCh, errCh := s.upstream.Events(context.Background(), events.ListOptions{Filters: fa})
 
-	c.Status(fiber.StatusOK).Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+	c.Status(fiber.StatusOK)
+	c.SendStreamWriter(func(w *bufio.Writer) {
 		encoder := json.NewEncoder(w)
 		for {
 			select {
@@ -73,7 +144,7 @@ func (s *DockerProxyServer) handleEvents(c fiber.Ctx) error {
 				break
 			}
 		}
-	}))
+	})
 
 	return nil
 }

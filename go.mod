@@ -25,7 +25,6 @@ require (
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.7.11
 	github.com/urfave/cli/v3 v3.11.0
-	github.com/valyala/fasthttp v1.73.0
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -328,6 +327,7 @@ require (
 	github.com/unrolled/render v1.0.2 // indirect
 	github.com/unrolled/secure v1.0.9 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasthttp v1.73.0 // indirect
 	github.com/vinyldns/go-vinyldns v0.9.18 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.251 // indirect
 	github.com/vulcand/oxy/v2 v2.1.0 // indirect
