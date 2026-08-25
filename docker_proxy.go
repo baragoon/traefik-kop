@@ -1,75 +1,4 @@
-package traefikkop
-
-import (
-	"bufio"
-	"context"
-	"encoding/json"
-	"fmt"
-	"net"
-	"os"
-	"strings"
-
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/rs/zerolog/log"
-	"github.com/valyala/fasthttp"
-)
-
-func getAvailablePort() (net.Listener, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return nil, err
-	}
-
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	return l, nil
-}
-
-// DockerProxyServer is a proxy server that filters docker labels based on a prefix
-type DockerProxyServer struct {
-	upstream    client.APIClient
-	labelPrefix string
-}
-
-func createProxy(upstream client.APIClient, labelPrefix string) *DockerProxyServer {
-	if labelPrefix != "" && !strings.HasSuffix(labelPrefix, ".") {
-		labelPrefix += "."
-	}
-	return &DockerProxyServer{
-		upstream:    upstream,
-		labelPrefix: labelPrefix,
-	}
-}
-
-func (s *DockerProxyServer) filterLabels(labels map[string]string) map[string]string {
-	if s.labelPrefix == "" || labels == nil {
-		return labels
-	}
-
-	newLabels := make(map[string]string)
-
-	for k, v := range labels {
-		if strings.HasPrefix(k, s.labelPrefix) {
-			// strip prefix from our labels
-			newKey := strings.TrimPrefix(k, s.labelPrefix)
-			newLabels[newKey] = v
-		} else if !strings.HasPrefix(k, "traefik.") {
-			// keep every other than traefik.* labels as is
-			newLabels[k] = v
-		}
-	}
-
-	return newLabels
-}
-
-func (s *DockerProxyServer) handleVersion(c *fiber.Ctx) error {
+func (s *DockerProxyServer) handleVersion(c fiber.Ctx) error {
 	v, err := s.upstream.ServerVersion(context.Background())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -77,7 +6,7 @@ func (s *DockerProxyServer) handleVersion(c *fiber.Ctx) error {
 	return c.JSON(v)
 }
 
-func (s *DockerProxyServer) handleContainersList(c *fiber.Ctx) error {
+func (s *DockerProxyServer) handleContainersList(c fiber.Ctx) error {
 	containers, err := s.upstream.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -91,7 +20,7 @@ func (s *DockerProxyServer) handleContainersList(c *fiber.Ctx) error {
 	return c.JSON(containers)
 }
 
-func (s *DockerProxyServer) handleContainerInspect(c *fiber.Ctx) error {
+func (s *DockerProxyServer) handleContainerInspect(c fiber.Ctx) error {
 	container, err := s.upstream.ContainerInspect(context.Background(), c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -104,7 +33,7 @@ func (s *DockerProxyServer) handleContainerInspect(c *fiber.Ctx) error {
 	return c.JSON(container)
 }
 
-func (s *DockerProxyServer) handleEvents(c *fiber.Ctx) error {
+func (s *DockerProxyServer) handleEvents(c fiber.Ctx) error {
 	var fa filters.Args
 	f := c.Query("filters")
 	if f != "" {
@@ -149,18 +78,18 @@ func (s *DockerProxyServer) handleEvents(c *fiber.Ctx) error {
 	return nil
 }
 
-func (s *DockerProxyServer) handleNotFound(c *fiber.Ctx) error {
+func (s *DockerProxyServer) handleNotFound(c fiber.Ctx) error {
 	log.Warn().Msgf("Unhandled request: %s %s", c.Method(), c.OriginalURL())
 	return c.Status(fiber.StatusNotFound).SendString("Not Found")
 }
 
 func (s *DockerProxyServer) start() (*fiber.App, string) {
-	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app := fiber.New()
 	if os.Getenv("DEBUG") != "" {
 		app.Use(logger.New())
 	}
 
-	app.All("/_ping", func(ctx *fiber.Ctx) error { return ctx.SendStatus(fiber.StatusNoContent) })
+	app.All("/_ping", func(ctx fiber.Ctx) error { return ctx.SendStatus(fiber.StatusNoContent) })
 	app.Get("/v*/version", s.handleVersion)
 	app.Get("/v*/containers/json", s.handleContainersList)
 	app.Get("/v*/containers/:id/json", s.handleContainerInspect)
@@ -172,7 +101,7 @@ func (s *DockerProxyServer) start() (*fiber.App, string) {
 		log.Fatal().Err(err)
 	}
 
-	go app.Listener(listener)
+	go app.Listener(listener, fiber.ListenConfig{DisableStartupMessage: true})
 
 	dockerEndpoint := fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 	log.Debug().Msgf("Started docker proxy at %s with label prefix '%s'", dockerEndpoint, s.labelPrefix)
