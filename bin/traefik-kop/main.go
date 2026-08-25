@@ -22,7 +22,7 @@ var (
 	date    string
 )
 
-func printVersion(ctx context.Context, cmd *cli.Command) {
+func printVersion(cmd *cli.Command) {
 	fmt.Printf("%s version %s (commit: %s, built %s)\n", cmd.Name, cmd.Version, commit, date)
 }
 
