@@ -15,7 +15,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
-	github.com/gofiber/fiber/v3 v3.5.0
+	github.com/gofiber/fiber/v2 v2.52.15
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.22.0
@@ -25,10 +25,10 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.7.11
-	github.com/urfave/cli/v3 v3.11.0
+	github.com/urfave/cli/v2 v2.3.0
 	github.com/urfave/cli/v3 v3.11.0
 	github.com/valyala/fasthttp v1.73.0
-	golang.org/x/exp v0.0.0-20260820142414-ca536658362e
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	gopkg.in/yaml.v3 v3.0.1
 )
 
