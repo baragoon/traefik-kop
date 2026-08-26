@@ -23,7 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
-	github.com/traefik/traefik/v3 v3.7.11
+	github.com/traefik/traefik/v3 v3.7.12
 	github.com/urfave/cli/v3 v3.11.0
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
 	gopkg.in/yaml.v3 v3.0.1
@@ -342,9 +342,9 @@ require (
 	github.com/yandex-cloud/go-sdk/v2 v2.136.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.etcd.io/etcd/api/v3 v3.6.8 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.6.8 // indirect
-	go.etcd.io/etcd/client/v3 v3.6.8 // indirect
+	go.etcd.io/etcd/api/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.6.14 // indirect
+	go.etcd.io/etcd/client/v3 v3.6.14 // indirect
 	go.mongodb.org/mongo-driver v1.17.9 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/otellogrus v0.13.0 // indirect
