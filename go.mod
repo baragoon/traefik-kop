@@ -11,7 +11,7 @@ replace (
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alicebob/miniredis/v2 v2.39.0
-	github.com/docker/cli v29.7.2+incompatible
+	github.com/docker/cli v29.8.0+incompatible
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.8.1
 	github.com/echovault/sugardb v0.17.0
@@ -291,6 +291,7 @@ require (
 	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/slog-common v0.21.0 // indirect
 	github.com/samber/slog-zerolog/v2 v2.9.2 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.36 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/selectel/domains-go v1.1.0 // indirect
