@@ -17,7 +17,7 @@ require (
 	github.com/echovault/sugardb v0.17.0
 	github.com/gofiber/fiber/v3 v3.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/redis/go-redis/v9 v9.22.0
+	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rs/zerolog v1.35.1
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sirupsen/logrus v1.10.2
@@ -371,7 +371,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
+	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/ratelimit v0.3.1 // indirect
 	go.uber.org/zap v1.28.0 // indirect
