@@ -2217,6 +2217,8 @@ github.com/traefik/traefik/v3 v3.7.13 h1:T8wy9KuaFzCkmXCqAzDy7t73pBDR1DHrJe3pqXp
 github.com/traefik/traefik/v3 v3.7.13/go.mod h1:RIJcuOCl/lLqKYD+/xCumBVYo64GUSqONYVaRNgVCw0=
 github.com/traefik/traefik/v3 v3.7.14 h1:OwOaZysA1f67UadBXfZqNlx6a70CFmnxcpXqR6hGoxs=
 github.com/traefik/traefik/v3 v3.7.14/go.mod h1:VjBBWozqV5bPGSmF0E+BCggQI6qYIZY0Ap6MjelSOg4=
+github.com/traefik/traefik/v3 v3.7.15 h1:pfH9WtnsMBUGuMrqhwMBBXaCjyHrFdlhFWBksvBQ1sI=
+github.com/traefik/traefik/v3 v3.7.15/go.mod h1:8Wo9E9H1BqN0NnEOmw2q2crdhOfAgoVsR5BUPIrEHA4=
 github.com/traefik/yaegi v0.16.1 h1:f1De3DVJqIDKmnasUF6MwmWv1dSEEat0wcpXhD2On3E=
 github.com/traefik/yaegi v0.16.1/go.mod h1:4eVhbPb3LnD2VigQjhYbEJ69vDRFdT2HQNrXx8eEwUY=
 github.com/transip/gotransip/v6 v6.27.2 h1:TLa/9d2klZ9kNN/tQrhMdcjA9JnsMbACpTO/8qRpHmg=
@@ -3481,6 +3483,8 @@ sigs.k8s.io/gateway-api v1.6.1 h1:mock6phZbI6rvZerwrVNk7hVNymQgHo+6sJ81Ia7ftY=
 sigs.k8s.io/gateway-api v1.6.1/go.mod h1:FVfx3t389ybeXOqvDghLbdvJdSCfI/PReqCUI3lu3mY=
 sigs.k8s.io/gateway-api v1.6.2 h1:vh5YzKlbdBivEaLX61+APKLGRq4tZ7Fj4XfGkv08xB4=
 sigs.k8s.io/gateway-api v1.6.2/go.mod h1:FVfx3t389ybeXOqvDghLbdvJdSCfI/PReqCUI3lu3mY=
+sigs.k8s.io/gateway-api v1.6.3 h1:lKpJa5bGlraC/QeACvCpsHLdmO6y0iKfzVl6gzaFEYc=
+sigs.k8s.io/gateway-api v1.6.3/go.mod h1:FVfx3t389ybeXOqvDghLbdvJdSCfI/PReqCUI3lu3mY=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730/go.mod h1:mdzfpAEoE6DHQEN0uh9ZbOCuHbLK5wOm7dK4ctXE9Tg=
 sigs.k8s.io/randfill v1.0.0 h1:JfjMILfT8A6RbawdsK2JXGBR5AQVfd+9TbzrlneTyrU=

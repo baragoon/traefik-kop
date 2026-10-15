@@ -23,7 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
-	github.com/traefik/traefik/v3 v3.7.14
+	github.com/traefik/traefik/v3 v3.7.15
 	github.com/urfave/cli/v3 v3.14.0
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	gopkg.in/yaml.v3 v3.0.1
@@ -415,7 +415,7 @@ require (
 	knative.dev/pkg v0.0.0-20251216153728-9c8140b780d1 // indirect
 	mvdan.cc/xurls/v2 v2.5.0 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
-	sigs.k8s.io/gateway-api v1.6.2 // indirect
+	sigs.k8s.io/gateway-api v1.6.3 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.0 // indirect
