@@ -2219,6 +2219,8 @@ github.com/traefik/traefik/v3 v3.7.14 h1:OwOaZysA1f67UadBXfZqNlx6a70CFmnxcpXqR6h
 github.com/traefik/traefik/v3 v3.7.14/go.mod h1:VjBBWozqV5bPGSmF0E+BCggQI6qYIZY0Ap6MjelSOg4=
 github.com/traefik/traefik/v3 v3.7.15 h1:pfH9WtnsMBUGuMrqhwMBBXaCjyHrFdlhFWBksvBQ1sI=
 github.com/traefik/traefik/v3 v3.7.15/go.mod h1:8Wo9E9H1BqN0NnEOmw2q2crdhOfAgoVsR5BUPIrEHA4=
+github.com/traefik/traefik/v3 v3.7.16 h1:GkBKRjSmNJIZD35TwGIL+7KcQ/Iadw7fqhdcv4A4Qn0=
+github.com/traefik/traefik/v3 v3.7.16/go.mod h1:lVCX3r1yr7ViLnbZlyBF1mL0q2Am/HeWdPuZbPGtYRs=
 github.com/traefik/yaegi v0.16.1 h1:f1De3DVJqIDKmnasUF6MwmWv1dSEEat0wcpXhD2On3E=
 github.com/traefik/yaegi v0.16.1/go.mod h1:4eVhbPb3LnD2VigQjhYbEJ69vDRFdT2HQNrXx8eEwUY=
 github.com/transip/gotransip/v6 v6.27.2 h1:TLa/9d2klZ9kNN/tQrhMdcjA9JnsMbACpTO/8qRpHmg=
