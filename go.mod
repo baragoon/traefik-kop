@@ -23,7 +23,7 @@ require (
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/traefik/paerser v0.2.3
-	github.com/traefik/traefik/v3 v3.7.15
+	github.com/traefik/traefik/v3 v3.7.16
 	github.com/urfave/cli/v3 v3.14.0
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e
 	gopkg.in/yaml.v3 v3.0.1
