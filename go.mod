@@ -1,6 +1,6 @@
 module github.com/baragoon/traefik-kop
 
-go 1.26.0
+go 1.27.3
 
 replace (
 	github.com/abbot/go-http-auth => github.com/containous/go-http-auth v0.4.1-0.20200324110947-a37a7636d23e
