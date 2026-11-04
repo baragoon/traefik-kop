@@ -133,10 +133,13 @@ GLOBAL OPTIONS:
    --docker-prefix value  Docker label prefix [$DOCKER_PREFIX]
    --poll-interval value  Poll interval for refreshing container list (default: 60) [$KOP_POLL_INTERVAL]
    --namespace value      Namespace to process containers for [$NAMESPACE]
+   --log-level value      Log level (trace, debug, info, warn, error, critical, fatal, panic, disabled) (default: "info") [$LOG_LEVEL]
    --verbose              Enable debug logging (default: false) [$VERBOSE, $DEBUG]
    --help, -h             show help
    --version, -V          Print the version (default: false)
 ```
+
+Set `LOG_LEVEL` (or `--log-level`) to control application and Traefik log verbosity. The default is `info`; supported values are `trace`, `debug`, `info`, `warn`, `error`, `critical`, `fatal`, `panic`, and `disabled` (`warning` and `off` are accepted aliases). The initial Redis/provider startup messages remain visible at every level and omit the severity field. The legacy `VERBOSE=true` / `DEBUG=true` setting enables `debug` logging unless `LOG_LEVEL` or `--log-level` is explicitly set.
 
 Most important are the `bind-ip`/`bind-interface` and `redis-addr` flags. For TLS-enabled Redis endpoints, also set `--redis-tls` (or `REDIS_TLS=true`) alongside the address and credentials. If the Redis certificate is for a different hostname than the connection target (for example you connect to an internal service name or IP behind Traefik), set `--redis-tls-server-name` / `REDIS_TLS_SERVER_NAME` to the certificate hostname so the TLS SNI matches the cert.
 

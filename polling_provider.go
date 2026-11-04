@@ -43,7 +43,7 @@ func (p *PollingProvider) Provide(configurationChan chan<- dynamic.Message, pool
 		return nil
 	}
 
-	log.Info().Msgf("starting polling provider with %s interval", p.refreshInterval.String())
+	log.Log().Msgf("starting polling provider with %s interval", p.refreshInterval.String())
 	ticker := time.NewTicker(p.refreshInterval)
 
 	pool.GoCtx(func(ctx context.Context) {
