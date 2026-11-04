@@ -86,7 +86,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 	}
 
 	if len(sentinelAddrs) > 0 && sentinelMaster != "" {
-		log.Info().Msgf("creating new redis store via sentinel (master=%s, sentinels=%v) for hostname %s with %dsec TTL", sentinelMaster, sentinelAddrs, hostname, ttl)
+		log.Log().Msgf("creating new redis store via sentinel (master=%s, sentinels=%v) for hostname %s with %dsec TTL", sentinelMaster, sentinelAddrs, hostname, ttl)
 		failoverOpts := &redis.FailoverOptions{
 			MasterName:      sentinelMaster,
 			SentinelAddrs:   sentinelAddrs,
@@ -100,7 +100,7 @@ func NewRedisStore(hostname string, addr string, ttl int, user string, pass stri
 		}
 		client = redis.NewFailoverClient(failoverOpts)
 	} else {
-		log.Info().Msgf("creating new redis store at %s for hostname %s with %dsec TTL", addr, hostname, ttl)
+		log.Log().Msgf("creating new redis store at %s for hostname %s with %dsec TTL", addr, hostname, ttl)
 		client = redis.NewClient(&redis.Options{
 			ClientName:      "",
 			DisableIdentity: true,

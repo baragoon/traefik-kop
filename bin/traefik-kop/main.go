@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strings"
@@ -15,6 +17,11 @@ import (
 )
 
 const defaultDockerHost = "unix:///var/run/docker.sock"
+
+var startupMessagesWithoutLevel = [][]byte{
+	[]byte(`"message":"Starting provider aggregator `),
+	[]byte(`"message":"Starting provider *docker.Provider"`),
+}
 
 var (
 	version string
@@ -146,6 +153,12 @@ func flags() {
 				Sources: cli.EnvVars("KOP_POLL_INTERVAL"),
 			},
 			&cli.StringFlag{
+				Name:    "log-level",
+				Usage:   "Log level (trace, debug, info, warn, error, critical, fatal, panic, disabled)",
+				Value:   "info",
+				Sources: cli.EnvVars("LOG_LEVEL"),
+			},
+			&cli.StringFlag{
 				Name:    "namespace",
 				Usage:   "Namespace to process containers for",
 				Sources: cli.EnvVars("NAMESPACE"),
@@ -165,20 +178,90 @@ func flags() {
 	}
 }
 
-func setupLogging(debug bool) {
-	if debug {
-		logrus.SetLevel(logrus.DebugLevel)
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Logger = log.Logger.Level(zerolog.DebugLevel)
-	} else {
-		logrus.SetLevel(logrus.InfoLevel)
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-		log.Logger = log.Logger.Level(zerolog.InfoLevel)
+type logLevelWriter struct {
+	writer io.Writer
+	level  zerolog.Level
+}
+
+func (w logLevelWriter) Write(p []byte) (int, error) {
+	return w.WriteLevel(zerolog.NoLevel, p)
+}
+
+func (w logLevelWriter) WriteLevel(level zerolog.Level, p []byte) (int, error) {
+	inputLength := len(p)
+	if isStartupMessage(p) {
+		p = bytes.Replace(p, []byte(`"level":"info",`), nil, 1)
+		p = bytes.Replace(p, []byte(`,"level":"info"`), nil, 1)
+	} else if level != zerolog.NoLevel && level < w.level {
+		return inputLength, nil
 	}
+
+	n, err := w.writer.Write(p)
+	if err != nil {
+		return 0, err
+	}
+	if n != len(p) {
+		return 0, io.ErrShortWrite
+	}
+	return inputLength, nil
+}
+
+func isStartupMessage(p []byte) bool {
+	for _, message := range startupMessagesWithoutLevel {
+		if bytes.Contains(p, message) {
+			return true
+		}
+	}
+	return false
+}
+
+func parseLogLevel(value string) (zerolog.Level, logrus.Level, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "warning":
+		value = "warn"
+	case "critical":
+		value = "fatal"
+	case "off":
+		value = "disabled"
+	}
+
+	zeroLevel, err := zerolog.ParseLevel(value)
+	if err != nil {
+		return zerolog.NoLevel, 0, fmt.Errorf("invalid log level %q", value)
+	}
+
+	logrusValue := value
+	if value == "disabled" {
+		logrusValue = "panic"
+	}
+	logrusLevel, err := logrus.ParseLevel(logrusValue)
+	if err != nil {
+		return zerolog.NoLevel, 0, fmt.Errorf("invalid log level %q", value)
+	}
+
+	return zeroLevel, logrusLevel, nil
+}
+
+func setupLogging(level string) error {
+	zeroLevel, logrusLevel, err := parseLogLevel(level)
+	if err != nil {
+		return err
+	}
+
+	logrus.SetLevel(logrusLevel)
+	if zeroLevel == zerolog.Disabled {
+		logrus.SetOutput(io.Discard)
+	} else {
+		logrus.SetOutput(os.Stderr)
+	}
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	log.Logger = log.Logger.Output(logLevelWriter{writer: os.Stderr, level: zeroLevel}).Level(zerolog.TraceLevel)
 	zerolog.DefaultContextLogger = &log.Logger
 
 	formatter := &logrus.TextFormatter{DisableColors: true, FullTimestamp: true, DisableSorting: true}
 	logrus.SetFormatter(formatter)
+	return nil
 }
 
 func main() {
@@ -200,6 +283,14 @@ func splitStringArr(str string) []string {
 
 func doStart(ctx context.Context, cmd *cli.Command) error {
 	traefikkop.Version = version
+
+	logLevel := cmd.String("log-level")
+	if !cmd.IsSet("log-level") && cmd.Bool("verbose") {
+		logLevel = "debug"
+	}
+	if err := setupLogging(logLevel); err != nil {
+		return err
+	}
 
 	namespaces := splitStringArr(cmd.String("namespace"))
 
@@ -251,7 +342,6 @@ func doStart(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
-	setupLogging(cmd.Bool("verbose"))
 	log.Debug().Msgf("using traefik-kop config: %s", fmt.Sprintf("%+v", config))
 
 	traefikkop.Start(config)
