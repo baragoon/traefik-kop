@@ -20,31 +20,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.MY_GITHUB_TOKEN }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version: 1.27.3
           cache: false
 
       - name: Remote cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         if: ${{ runner.environment == 'github-hosted' }}
         with:
           path: |
@@ -78,7 +78,7 @@ jobs:
           git status --porcelain
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v7
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
@@ -99,7 +99,7 @@ jobs:
       #       | xargs -r docker rmi -f
 
       - name: Cleanup old images from registry
-        uses: dataaxiom/ghcr-cleanup-action@v1
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1
         with:
           tags: "*-next-*"
           older-than: "30 days"
