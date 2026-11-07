@@ -6,10 +6,9 @@
       "customType": "regex",
       "managerFilePatterns": ["/^README\\.md$/"],
       "matchStrings": [
-        "ghcr\\.io/baragoon/traefik-kop:(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+        "(?<depName>ghcr\\.io/baragoon/traefik-kop):(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
-      "datasourceTemplate": "github-tags",
-      "depNameTemplate": "baragoon/traefik-kop",
+      "datasourceTemplate": "docker",
       "versioningTemplate": "semver"
     }
   ],
