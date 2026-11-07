@@ -26,7 +26,7 @@
     },
     {
       "matchManagers": ["custom.regex"],
-      "matchPackageNames": ["baragoon/traefik-kop"],
+      "matchPackageNames": ["ghcr.io/baragoon/traefik-kop"],
       "automerge": true,
       "automergeType": "branch",
       "ignoreTests": true
