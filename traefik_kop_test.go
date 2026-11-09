@@ -3,14 +3,14 @@ package traefikkop
 import (
 	"context"
 	"encoding/json"
+	"net/netip"
 	"strings"
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
@@ -30,12 +30,12 @@ type fakeDockerClient struct {
 	err        error
 }
 
-func (c *fakeDockerClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
-	return c.containers, nil
+func (c *fakeDockerClient) ContainerList(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error) {
+	return client.ContainerListResult{Items: c.containers}, nil
 }
 
-func (c *fakeDockerClient) ContainerInspect(ctx context.Context, container string) (container.InspectResponse, error) {
-	return c.container, c.err
+func (c *fakeDockerClient) ContainerInspect(ctx context.Context, container string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+	return client.ContainerInspectResult{Container: c.container}, c.err
 }
 
 func Test_replaceIPs(t *testing.T) {
@@ -70,10 +70,8 @@ func createTestClient(labels map[string]string) *fakeDockerClient {
 			},
 		},
 		container: container.InspectResponse{
-			ContainerJSONBase: &types.ContainerJSONBase{
-				ID:         "foobar_id",
-				HostConfig: &container.HostConfig{},
-			},
+			ID:         "foobar_id",
+			HostConfig: &container.HostConfig{},
 			Config: &container.Config{
 				Labels: labels,
 			},
@@ -113,9 +111,9 @@ func Test_replacePorts(t *testing.T) {
 
 	// with port binding
 	log.Debug().Msg("with port binding")
-	portMap := nat.PortMap{
-		"80": []nat.PortBinding{
-			{HostIP: "172.20.0.2", HostPort: "8888"},
+	portMap := network.PortMap{
+		network.MustParsePort("80/tcp"): []network.PortBinding{
+			{HostIP: netip.MustParseAddr("172.20.0.2"), HostPort: "8888"},
 		},
 	}
 
@@ -129,9 +127,9 @@ func Test_replacePorts(t *testing.T) {
 
 func Test_replacePortsNoService(t *testing.T) {
 
-	portMap := nat.PortMap{
-		"80": []nat.PortBinding{
-			{HostIP: "172.20.0.2", HostPort: "8888"},
+	portMap := network.PortMap{
+		network.MustParsePort("80/tcp"): []network.PortBinding{
+			{HostIP: netip.MustParseAddr("172.20.0.2"), HostPort: "8888"},
 		},
 	}
 

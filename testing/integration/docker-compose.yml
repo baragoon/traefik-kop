@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "127.0.0.1::6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 2s
+      retries: 60
+
+  traefik:
+    image: traefik:v3.7.17
+    command:
+      - --api.insecure=true
+      - --entrypoints.web.address=:80
+      - --providers.redis.endpoints=redis:6379
+      - --providers.redis.rootkey=traefik
+    ports:
+      - "127.0.0.1::80"
+      - "127.0.0.1::8080"
+    volumes:
+      - "${TRAEFIK_KOP_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  whoami:
+    image: traefik/whoami:v1.10.3
+    hostname: integration-whoami
+    labels:
+      traefik.http.routers.integration.rule: "Host(`integration.test`)"
+      traefik.http.routers.integration.entrypoints: web
+      traefik.http.routers.integration.service: integration
+      traefik.http.services.integration.loadbalancer.server.port: "80"

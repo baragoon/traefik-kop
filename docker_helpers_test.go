@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/netip"
 	"os"
 	"path"
 	"sort"
@@ -14,14 +15,11 @@ import (
 
 	"github.com/docker/cli/cli/compose/loader"
 	compose "github.com/docker/cli/cli/compose/types"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/go-connections/nat"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"github.com/ryanuber/go-glob"
 	"github.com/stretchr/testify/assert"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -95,42 +93,24 @@ type DockerAPIStub struct {
 	containersJSON map[string]container.InspectResponse
 }
 
-func (d DockerAPIStub) ServerVersion(ctx context.Context) (types.Version, error) {
+func (d DockerAPIStub) ServerVersion(ctx context.Context, _ client.ServerVersionOptions) (client.ServerVersionResult, error) {
 	// Return a version that's compatible with both old and new Docker clients
-	return types.Version{
+	return client.ServerVersionResult{
 		Version:    "29.0.0",
 		APIVersion: "1.45", // Compatible with Docker CE 29.0.0 and API negotiation
 	}, nil
 }
 
-func (d DockerAPIStub) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
-	// Implement your logic here
-	fmt.Println("Events")
-	return nil, nil
-}
-
-func (d DockerAPIStub) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
+func (d DockerAPIStub) ContainerList(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error) {
 	// Implement your logic here
 	fmt.Println("ContainerList")
-	return d.containers, nil
+	return client.ContainerListResult{Items: d.containers}, nil
 }
 
-func (d DockerAPIStub) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
+func (d DockerAPIStub) ContainerInspect(ctx context.Context, containerID string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
 	// Implement your logic here
 	fmt.Println("ContainerInspect", containerID)
-	return d.containersJSON[containerID], nil
-}
-
-func (d DockerAPIStub) ServiceList(ctx context.Context, options swarm.ServiceListOptions) ([]swarm.Service, error) {
-	// Implement your logic here
-	fmt.Println("ServiceList")
-	return nil, nil
-}
-
-func (d DockerAPIStub) NetworkList(ctx context.Context, options network.ListOptions) ([]network.Summary, error) {
-	// Implement your logic here
-	fmt.Println("NetworkList")
-	return nil, nil
+	return client.ContainerInspectResult{Container: d.containersJSON[containerID]}, nil
 }
 
 func createHTTPServer() (*fiber.App, string) {
@@ -138,7 +118,7 @@ func createHTTPServer() (*fiber.App, string) {
 	app.Use(logger.New())
 
 	app.Get("/v*/version", func(c fiber.Ctx) error {
-		version, err := dockerAPI.ServerVersion(c.Context())
+		version, err := dockerAPI.ServerVersion(c.Context(), client.ServerVersionOptions{})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -146,22 +126,22 @@ func createHTTPServer() (*fiber.App, string) {
 	})
 
 	app.Get("/v*/containers/json", func(c fiber.Ctx) error {
-		containers, err := dockerAPI.ContainerList(c.Context(), container.ListOptions{})
+		result, err := dockerAPI.ContainerList(c.Context(), client.ContainerListOptions{})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
-		return c.JSON(containers)
+		return c.JSON(result.Items)
 	})
 
 	app.Get("/v*/containers/:id/json", func(c fiber.Ctx) error {
-		container, err := dockerAPI.ContainerInspect(c.Context(), c.Params("id"))
+		result, err := dockerAPI.ContainerInspect(c.Context(), c.Params("id"), client.ContainerInspectOptions{})
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 		}
 		// fmt.Printf("returning container: %+v\n", container)
 		// print container as json
 		// json.NewEncoder((os.Stdout)).Encode(container)
-		return c.JSON(container)
+		return c.JSON(result.Container)
 	})
 
 	app.Get("/v*/events", func(c fiber.Ctx) error {
@@ -212,24 +192,24 @@ func loadYAMLWithEnv(yaml []byte, env map[string]string) (*compose.Config, error
 func createContainers(composeConfig *compose.Config) []container.Summary {
 	containers := make([]container.Summary, 0)
 	for _, service := range composeConfig.Services {
-		container := container.Summary{
+		summary := container.Summary{
 			ID:     service.Name,
 			Labels: service.Labels,
 			State:  "running",
 			Status: "running",
 		}
 		// convert ports
-		ports := make([]types.Port, 0)
+		ports := make([]container.PortSummary, 0)
 		for _, port := range service.Ports {
-			ports = append(ports, types.Port{
-				IP:          "172.18.0.2",
+			ports = append(ports, container.PortSummary{
+				IP:          netip.MustParseAddr("172.18.0.2"),
 				PrivatePort: uint16(port.Target),
 				PublicPort:  uint16(port.Published),
 				Type:        port.Protocol,
 			})
 		}
-		container.Ports = ports
-		containers = append(containers, container)
+		summary.Ports = ports
+		containers = append(containers, summary)
 	}
 	return containers
 }
@@ -239,30 +219,28 @@ func createContainersJSON(composeConfig *compose.Config) map[string]container.In
 	containersJSON := make(map[string]container.InspectResponse)
 	for _, service := range composeConfig.Services {
 		containerJSON := container.InspectResponse{
-			ContainerJSONBase: &types.ContainerJSONBase{
-				ID:   service.Name,
-				Name: service.Name,
-				State: &types.ContainerState{
-					Status:  "running",
-					Running: true,
-				},
-				HostConfig: &container.HostConfig{
-					NetworkMode:  "testing_default", // network name
-					PortBindings: nat.PortMap{},
-				},
+			ID:   service.Name,
+			Name: service.Name,
+			State: &container.State{
+				Status:  "running",
+				Running: true,
+			},
+			HostConfig: &container.HostConfig{
+				NetworkMode:  "testing_default", // network name
+				PortBindings: network.PortMap{},
 			},
 			Config: &container.Config{
 				Labels: service.Labels,
 			},
-			NetworkSettings: &types.NetworkSettings{
+			NetworkSettings: &container.NetworkSettings{
 				Networks: map[string]*network.EndpointSettings{
 					"testing_default": {
 						NetworkID: "testing_default", // should normally look like a random id but we can reuse the name here
-						IPAddress: "172.18.0.2",
+						IPAddress: netip.MustParseAddr("172.18.0.2"),
 					},
 					"foobar": {
 						NetworkID: "foobar",
-						IPAddress: "10.10.10.5",
+						IPAddress: netip.MustParseAddr("10.10.10.5"),
 					},
 				},
 			},
@@ -270,10 +248,10 @@ func createContainersJSON(composeConfig *compose.Config) map[string]container.In
 
 		// add port bindings
 		for _, port := range service.Ports {
-			portID := nat.Port(fmt.Sprintf("%d/%s", port.Published, port.Protocol))
-			containerJSON.HostConfig.PortBindings[portID] = []nat.PortBinding{
+			portID := network.MustParsePort(fmt.Sprintf("%d/%s", port.Published, port.Protocol))
+			containerJSON.HostConfig.PortBindings[portID] = []network.PortBinding{
 				{
-					HostIP:   "",
+					HostIP:   netip.Addr{},
 					HostPort: fmt.Sprintf("%d", port.Published),
 				},
 			}
