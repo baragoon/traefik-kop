@@ -43,6 +43,7 @@ them to a given `redis` instance. Simply configure your `traefik` node with a
   - [Docker API](#docker-api)
     - [Traefik Docker Provider Config](#traefik-docker-provider-config)
   - [Redis Sentinel](#redis-sentinel)
+  - [Testing](#testing)
   - [Releasing](#releasing)
   - [License](#license)
 
@@ -418,6 +419,19 @@ When Sentinel is configured, the `--redis-addr` flag is ignored.
 Both `--redis-sentinel-addrs` and `--redis-sentinel-master` must be provided
 together. The `--redis-user`, `--redis-pass`, and `--redis-db` flags still apply
 and are used for authenticating with the Redis master discovered by Sentinel.
+
+## Testing
+
+Run unit tests with `make test`. The container-backed integration test requires
+Docker and starts temporary Redis, Traefik, and whoami containers:
+
+```sh
+make test-integration
+```
+
+The test uses the active Docker context and `/var/run/docker.sock` by default.
+Set `TRAEFIK_KOP_DOCKER_SOCKET` when the Docker socket is at a different local
+path. Integration containers and their network are removed when the test ends.
 
 ## Releasing
 

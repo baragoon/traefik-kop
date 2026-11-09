@@ -22,6 +22,9 @@ serve: run
 test:
 	go test ./...
 
+test-integration:
+	go test -tags=integration -run '^TestMobyClientWithRedisAndTraefikContainers$$' .
+
 cover:
 	go test -coverprofile=c.out ./...
 

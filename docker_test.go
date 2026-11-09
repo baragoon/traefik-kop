@@ -6,8 +6,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/docker/client"
 	"github.com/gofiber/fiber/v3"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 }
 
 func Test_httpServerVersion(t *testing.T) {
-	v, err := dc.ServerVersion(context.Background())
+	v, err := dc.ServerVersion(context.Background(), client.ServerVersionOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, "29.0.0", v.Version)
 	assert.Equal(t, "1.45", v.APIVersion)

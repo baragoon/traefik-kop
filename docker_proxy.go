@@ -9,12 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/moby/moby/client"
 	"github.com/rs/zerolog/log"
 )
 
@@ -69,7 +66,7 @@ func (s *DockerProxyServer) filterLabels(labels map[string]string) map[string]st
 }
 
 func (s *DockerProxyServer) handleVersion(c fiber.Ctx) error {
-	v, err := s.upstream.ServerVersion(context.Background())
+	v, err := s.upstream.ServerVersion(context.Background(), client.ServerVersionOptions{})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -77,25 +74,26 @@ func (s *DockerProxyServer) handleVersion(c fiber.Ctx) error {
 }
 
 func (s *DockerProxyServer) handleContainersList(c fiber.Ctx) error {
-	containers, err := s.upstream.ContainerList(context.Background(), container.ListOptions{})
+	result, err := s.upstream.ContainerList(context.Background(), client.ContainerListOptions{})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	// modify labels
-	for _, container := range containers {
+	for _, container := range result.Items {
 		container.Labels = s.filterLabels(container.Labels)
 	}
 
-	return c.JSON(containers)
+	return c.JSON(result.Items)
 }
 
 func (s *DockerProxyServer) handleContainerInspect(c fiber.Ctx) error {
-	container, err := s.upstream.ContainerInspect(context.Background(), c.Params("id"))
+	result, err := s.upstream.ContainerInspect(context.Background(), c.Params("id"), client.ContainerInspectOptions{})
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	container := result.Container
 	if container.Config != nil {
 		container.Config.Labels = s.filterLabels(container.Config.Labels)
 	}
@@ -104,24 +102,29 @@ func (s *DockerProxyServer) handleContainerInspect(c fiber.Ctx) error {
 }
 
 func (s *DockerProxyServer) handleEvents(c fiber.Ctx) error {
-	var fa filters.Args
+	var filters client.Filters
 	f := c.Query("filters")
 	if f != "" {
-		var err error
-		fa, err = filters.FromJSON(f)
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		if err := json.Unmarshal([]byte(f), &filters); err != nil {
+			var legacyFilters map[string][]string
+			if legacyErr := json.Unmarshal([]byte(f), &legacyFilters); legacyErr != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+			}
+			filters = make(client.Filters, len(legacyFilters))
+			for key, values := range legacyFilters {
+				filters.Add(key, values...)
+			}
 		}
 	}
 
-	eventsCh, errCh := s.upstream.Events(context.Background(), events.ListOptions{Filters: fa})
+	result := s.upstream.Events(context.Background(), client.EventsListOptions{Filters: filters})
 
 	c.Status(fiber.StatusOK)
 	c.SendStreamWriter(func(w *bufio.Writer) {
 		encoder := json.NewEncoder(w)
 		for {
 			select {
-			case event := <-eventsCh:
+			case event := <-result.Messages:
 				if event.Type == "container" && event.Actor.Attributes != nil {
 					event.Actor.Attributes = s.filterLabels(event.Actor.Attributes)
 				}
@@ -130,7 +133,7 @@ func (s *DockerProxyServer) handleEvents(c fiber.Ctx) error {
 				if err != nil {
 					log.Error().Msgf("Error encoding event: %v", err)
 				}
-			case err := <-errCh:
+			case err := <-result.Err:
 				if err != nil {
 					e := encoder.Encode(err)
 					if e != nil {

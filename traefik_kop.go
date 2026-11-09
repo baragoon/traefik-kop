@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/rs/zerolog/log"
 	ptypes "github.com/traefik/paerser/types"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -534,7 +534,9 @@ func getContainerNetworkIP(dc *dockerCache, conf *dynamic.Configuration, svcType
 		if networkEndpoint != nil {
 			networkIP := networkEndpoint.IPAddress
 			log.Debug().Msgf("found network name '%s' with container IP '%s' for service %s", networkName, networkIP, svcName)
-			return networkIP
+			if networkIP.IsValid() {
+				return networkIP.String()
+			}
 		}
 	}
 	// fallback

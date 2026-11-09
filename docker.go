@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -34,16 +34,10 @@ func createDockerClient(endpoint string) (client.APIClient, error) {
 		return nil, err
 	}
 
-	httpHeaders := map[string]string{
-		"User-Agent": "traefik-kop " + Version,
-	}
-	opts = append(opts, client.WithHTTPHeaders(httpHeaders))
+	opts = append(opts, client.WithUserAgent("traefik-kop "+Version))
 
-	// Use API version negotiation for compatibility with both old and new Docker daemons
-	// This fixes the issue with Docker CE 29.0.0 which requires minimum API version 1.44
-	opts = append(opts, client.WithAPIVersionNegotiation())
-
-	return client.NewClientWithOpts(opts...)
+	// Moby enables API version negotiation by default for compatibility with old and new daemons.
+	return client.New(opts...)
 }
 
 func getClientOpts(endpoint string) ([]client.Opt, error) {
@@ -66,10 +60,11 @@ func (dc *dockerCache) populate() error {
 
 	if dc.list == nil {
 		var err error
-		dc.list, err = dc.client.ContainerList(context.Background(), container.ListOptions{})
+		containers, err := dc.client.ContainerList(context.Background(), client.ContainerListOptions{})
 		if err != nil {
 			return errors.Wrap(err, "failed to list containers")
 		}
+		dc.list = containers.Items
 	}
 
 	for _, c := range dc.list {
@@ -77,10 +72,11 @@ func (dc *dockerCache) populate() error {
 		var ok bool
 		if container, ok = dc.details[c.ID]; !ok {
 			var err error
-			container, err = dc.client.ContainerInspect(context.Background(), c.ID)
+			inspect, err := dc.client.ContainerInspect(context.Background(), c.ID, client.ContainerInspectOptions{})
 			if err != nil {
 				return errors.Wrapf(err, "failed to inspect container %s", c.ID)
 			}
+			container = inspect.Container
 			dc.details[c.ID] = container
 		}
 
@@ -191,11 +187,11 @@ func logJSON(name string, v interface{}) {
 }
 
 // Convert host:container port binding map to a compact printable string
-func portBindingString(bindings nat.PortMap) string {
+func portBindingString(bindings network.PortMap) string {
 	s := []string{}
 	for k, v := range bindings {
 		if len(v) > 0 {
-			containerPort := strings.TrimSuffix(string(k), "/tcp")
+			containerPort := strings.TrimSuffix(k.String(), "/tcp")
 			containerPort = strings.TrimSuffix(string(containerPort), "/udp")
 			s = append(s, fmt.Sprintf("%s:%s", v[0].HostPort, containerPort))
 		}
