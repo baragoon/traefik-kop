@@ -71,7 +71,7 @@ Run `traefik-kop` on your other nodes via docker-compose:
 ```yaml
 services:
   traefik-kop:
-    image: ghcr.io/baragoon/traefik-kop:0.22.3
+    image: ghcr.io/baragoon/traefik-kop:0.22.4
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -268,7 +268,7 @@ configure `kop` with a namespace:
 ```yaml
 services:
   traefik-kop:
-    image: ghcr.io/baragoon/traefik-kop:0.22.3
+    image: ghcr.io/baragoon/traefik-kop:0.22.4
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -334,7 +334,7 @@ becomes
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.3"
+    image: "ghcr.io/baragoon/traefik-kop:0.22.4"
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -382,7 +382,7 @@ For example:
 ```yaml
 services:
   traefik-kop:
-    image: ghcr.io/baragoon/traefik-kop:0.22.3
+    image: ghcr.io/baragoon/traefik-kop:0.22.4
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -405,7 +405,7 @@ always writes to the current master, even after a failover.
 ```yaml
 services:
   traefik-kop:
-    image: ghcr.io/baragoon/traefik-kop:0.22.3
+    image: ghcr.io/baragoon/traefik-kop:0.22.4
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
