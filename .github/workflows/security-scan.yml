@@ -100,7 +100,10 @@ jobs:
           exit "$scan_status"
 
       - name: Open or update vulnerability issue
-        if: steps.scan.outputs.vulnerabilities == 'true' && github.event_name != 'pull_request'
+        if: >-
+          steps.scan.outputs.vulnerabilities == 'true' &&
+          (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
