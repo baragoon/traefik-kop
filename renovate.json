@@ -10,6 +10,16 @@
       ],
       "datasourceTemplate": "docker",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^README\\.md$/"],
+      "matchStrings": [
+        "image:\\s*['\"]?(?<depName>nginx):(?<currentValue>\\d+\\.\\d+\\.\\d+-alpine\\d+\\.\\d+)['\"]?"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?-alpine(?<build>\\d+)\\.(?<revision>\\d+)$"
+
     }
   ],
   "extends": [
@@ -30,6 +40,11 @@
       "automerge": true,
       "automergeType": "branch",
       "ignoreTests": true
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["nginx"],
+      "pinDigests": false
     },
     {
       "matchManagers": ["docker-compose"],
