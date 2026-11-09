@@ -20,8 +20,8 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
-	"github.com/ryanuber/go-glob"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 	"github.com/traefik/traefik/v3/pkg/safe"
 )
@@ -63,11 +63,30 @@ func (s *testStore) Gets(key string) (map[string]string, error) {
 	}
 	vals := make(map[string]string)
 	for k := range s.kv {
-		if glob.Glob(key, k) {
+		matched, err := path.Match(key, k)
+		if err != nil {
+			return nil, err
+		}
+		if matched {
 			vals[k], _ = s.Get(k)
 		}
 	}
 	return vals, nil
+}
+
+func Test_testStoreGetsMatchesOnePathSegment(t *testing.T) {
+	store := testStore{kv: map[string]interface{}{
+		"prefix/servers/one/url":       "http://one",
+		"prefix/servers/two/url":       "http://two",
+		"prefix/servers/two/extra/url": "http://extra",
+	}}
+
+	got, err := store.Gets("prefix/servers/*/url")
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{
+		"prefix/servers/one/url": "http://one",
+		"prefix/servers/two/url": "http://two",
+	}, got)
 }
 
 func (s *testStore) Store(conf dynamic.Configuration) error {
