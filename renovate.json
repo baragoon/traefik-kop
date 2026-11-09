@@ -13,8 +13,7 @@
     }
   ],
   "extends": [
-    "config:recommended",
-    "helpers:pinGitHubActionDigests"
+    "config:best-practices"
   ],
   "osvVulnerabilityAlerts": true,
   "packageRules": [
@@ -27,6 +26,7 @@
     {
       "matchManagers": ["custom.regex"],
       "matchPackageNames": ["ghcr.io/baragoon/traefik-kop"],
+      "pinDigests": false,
       "automerge": true,
       "automergeType": "branch",
       "ignoreTests": true
