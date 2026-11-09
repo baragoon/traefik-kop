@@ -15,7 +15,7 @@ require (
 	github.com/echovault/sugardb v0.17.0
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/moby/moby/api v1.56.1
-	github.com/moby/moby/client v0.6.0
+	github.com/moby/moby/client v0.6.2
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rs/zerolog v1.35.1
