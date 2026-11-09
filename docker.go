@@ -10,7 +10,6 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -62,7 +61,7 @@ func (dc *dockerCache) populate() error {
 		var err error
 		containers, err := dc.client.ContainerList(context.Background(), client.ContainerListOptions{})
 		if err != nil {
-			return errors.Wrap(err, "failed to list containers")
+			return fmt.Errorf("failed to list containers: %w", err)
 		}
 		dc.list = containers.Items
 	}
@@ -74,7 +73,7 @@ func (dc *dockerCache) populate() error {
 			var err error
 			inspect, err := dc.client.ContainerInspect(context.Background(), c.ID, client.ContainerInspectOptions{})
 			if err != nil {
-				return errors.Wrapf(err, "failed to inspect container %s", c.ID)
+				return fmt.Errorf("failed to inspect container %s: %w", c.ID, err)
 			}
 			container = inspect.Container
 			dc.details[c.ID] = container
@@ -115,7 +114,7 @@ func (dc *dockerCache) findContainerByServiceName(svcType string, svcName string
 		}
 	}
 
-	return container.InspectResponse{}, errors.Errorf("service label not found for %s/%s", svcType, svcName)
+	return container.InspectResponse{}, fmt.Errorf("service label not found for %s/%s", svcType, svcName)
 }
 
 // Check if the port is explicitly set via label
@@ -141,11 +140,11 @@ func getPortBinding(container container.InspectResponse) (string, error) {
 	numBindings := len(container.HostConfig.PortBindings)
 	log.Debug().Msgf("found %d host-port bindings", numBindings)
 	if numBindings > 1 {
-		return "", errors.Errorf("found more than one host-port binding for container '%s' (%s)", container.Name, portBindingString(container.HostConfig.PortBindings))
+		return "", fmt.Errorf("found more than one host-port binding for container '%s' (%s)", container.Name, portBindingString(container.HostConfig.PortBindings))
 	}
 	for _, v := range container.HostConfig.PortBindings {
 		if len(v) > 1 {
-			return "", errors.Errorf("found more than one host-port binding for container '%s' (%s)", container.Name, portBindingString(container.HostConfig.PortBindings))
+			return "", fmt.Errorf("found more than one host-port binding for container '%s' (%s)", container.Name, portBindingString(container.HostConfig.PortBindings))
 		}
 		if v[0].HostPort != "" {
 			log.Debug().Msgf("found host-port binding %s", v[0].HostPort)
@@ -171,7 +170,7 @@ func getPortBinding(container container.InspectResponse) (string, error) {
 		log.Debug().Msg("skipping network settings check, no ports found")
 	}
 
-	return "", errors.Errorf("no host-port binding found for container '%s'", container.Name)
+	return "", fmt.Errorf("no host-port binding found for container '%s'", container.Name)
 }
 
 func logJSON(name string, v interface{}) {

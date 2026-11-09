@@ -1,12 +1,12 @@
 package traefikkop
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/provider/docker"
 	"gopkg.in/yaml.v3"
@@ -55,11 +55,11 @@ func loadDockerConfig(input string) (*docker.Provider, error) {
 			log.Debug().Msgf("loading docker config from file %s", input)
 			r, err = os.Open(input)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to open docker config %s", input)
+				return nil, fmt.Errorf("failed to open docker config %s: %w", input, err)
 			}
 			defer r.(io.Closer).Close()
 		} else {
-			return nil, errors.Wrapf(err, "failed to stat docker config %s", input)
+			return nil, fmt.Errorf("failed to stat docker config %s: %w", input, err)
 		}
 	} else {
 		log.Debug().Msgf("loading docker config from yaml input")
@@ -70,7 +70,7 @@ func loadDockerConfig(input string) (*docker.Provider, error) {
 	conf := ConfigFile{Docker: docker.Provider{}}
 	err := yaml.NewDecoder(r).Decode(&conf)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load config")
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
 	conf.Docker.Network = strings.TrimSpace(conf.Docker.Network)

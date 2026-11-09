@@ -3,6 +3,7 @@ package traefikkop
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -136,7 +136,7 @@ func (s *RedisStore) Get(key string) (string, error) {
 		if errors.Is(err, redis.Nil) {
 			return "", nil // key does not exist
 		}
-		return "", errors.Wrapf(err, "failed to get key %s", key)
+		return "", fmt.Errorf("failed to get key %s: %w", key, err)
 	}
 	return val, nil
 }
@@ -144,7 +144,7 @@ func (s *RedisStore) Get(key string) (string, error) {
 func (s *RedisStore) Gets(key string) (map[string]string, error) {
 	keys, err := s.client.Keys(context.Background(), key).Result()
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get keys matching %s", key)
+		return nil, fmt.Errorf("failed to get keys matching %s: %w", key, err)
 	}
 	if len(keys) == 0 {
 		return nil, nil // no keys found
@@ -153,7 +153,7 @@ func (s *RedisStore) Gets(key string) (map[string]string, error) {
 	for _, k := range keys {
 		val, err := s.Get(k)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get value for key %s", k)
+			return nil, fmt.Errorf("failed to get value for key %s: %w", k, err)
 		}
 		vals[k] = val
 	}
@@ -252,7 +252,7 @@ func (s *RedisStore) swapKeys(setkey string) error {
 			s.client.Unlink(context.Background(), setkey)
 			return nil
 		}
-		return errors.Wrap(err, "rename failed")
+		return fmt.Errorf("rename failed: %w", err)
 	}
 	return nil
 }
@@ -277,10 +277,10 @@ func (s *RedisStore) removeKeys(setkey string, keys []string) error {
 		log.Debug().Msgf("removing keys matching %s", keyPath)
 		res, err := s.client.Keys(context.Background(), keyPath).Result()
 		if err != nil {
-			return errors.Wrap(err, "fetch failed")
+			return fmt.Errorf("fetch failed: %w", err)
 		}
 		if err := s.client.Unlink(context.Background(), res...).Err(); err != nil {
-			return errors.Wrap(err, "unlink failed")
+			return fmt.Errorf("unlink failed: %w", err)
 		}
 	}
 	return nil
@@ -293,7 +293,7 @@ func (s *RedisStore) removeOldKeys(m interface{}, setname string) error {
 	if len(newkeys) == 0 {
 		res, err := s.client.SMembers(context.Background(), setkey).Result()
 		if err != nil {
-			return errors.Wrap(err, "fetch failed")
+			return fmt.Errorf("fetch failed: %w", err)
 		}
 		return s.removeKeys(setname, res)
 
@@ -301,13 +301,13 @@ func (s *RedisStore) removeOldKeys(m interface{}, setname string) error {
 		// make a diff and remove
 		err := s.client.SAdd(context.Background(), setkey+"_new", mkslice(newkeys)...).Err()
 		if err != nil {
-			return errors.Wrap(err, "add failed")
+			return fmt.Errorf("add failed: %w", err)
 		}
 
 		// diff the existing keys with the new ones
 		res, err := s.client.SDiff(context.Background(), setkey, setkey+"_new").Result()
 		if err != nil {
-			return errors.Wrap(err, "diff failed")
+			return fmt.Errorf("diff failed: %w", err)
 		}
 		return s.removeKeys(setname, res)
 	}
