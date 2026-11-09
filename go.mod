@@ -11,7 +11,6 @@ require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/docker/cli v29.9.3+incompatible
-	github.com/echovault/sugardb v0.17.0
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.2
