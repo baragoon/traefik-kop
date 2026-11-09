@@ -87,7 +87,7 @@ Then add the usual labels to your target service:
 ```yml
 services:
   nginx:
-    image: nginx:1.30.3-alpine3.23
+    image: nginx:1.31.8-alpine3.24
     restart: unless-stopped
     ports:
       # The host port binding will automatically be picked up for use as the
@@ -232,7 +232,7 @@ if only a single port is bound. For example:
 ```yml
 services:
   nginx:
-    image: nginx:1.30.3-alpine3.23
+    image: nginx:1.31.8-alpine3.24
     restart: unless-stopped
     ports:
       - '8088:80'
@@ -245,7 +245,7 @@ explicitly set the port binding via service label, like so:
 ```yaml
 services:
   nginx:
-    image: nginx:1.30.3-alpine3.23
+    image: nginx:1.31.8-alpine3.24
     network_mode: host
     ports:
       - '8088:80'
@@ -283,7 +283,7 @@ Then add the `kop.namespace` label to your target services, along with the usual
 ```yaml
 services:
   nginx:
-    image: nginx:1.30.3-alpine3.23
+    image: nginx:1.31.8-alpine3.24
     restart: unless-stopped
     ports:
       - '8088:80'
