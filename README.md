@@ -71,15 +71,15 @@ Run `traefik-kop` on your other nodes via docker-compose:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.3"
+    image: ghcr.io/baragoon/traefik-kop:0.22.3
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - "REDIS_ADDR=192.168.1.50:6379"
-      - "BIND_IP=192.168.1.75"
+      REDIS_ADDR: 192.168.1.50:6379
+      BIND_IP: 192.168.1.75
       # Alternatively, derive from an interface (requires network_mode: host)
-      # - "BIND_INTERFACE=eth0"
+      # BIND_INTERFACE: eth0
 ```
 
 Then add the usual labels to your target service:
@@ -87,13 +87,13 @@ Then add the usual labels to your target service:
 ```yml
 services:
   nginx:
-    image: "nginx:alpine"
+    image: nginx:1.31.8-alpine
     restart: unless-stopped
     ports:
       # The host port binding will automatically be picked up for use as the
       # service endpoint. See 'service port binding' in the configuration
       # section for more.
-      - 8088:80
+      - '8088:80'
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.nginx.rule=Host(`nginx-on-docker2.example.com`)"
@@ -232,10 +232,10 @@ if only a single port is bound. For example:
 ```yml
 services:
   nginx:
-    image: "nginx:alpine"
+    image: nginx:1.31.8-alpine
     restart: unless-stopped
     ports:
-      - 8088:80
+      - '8088:80'
 ```
 
 `8088` would automatically be used as the service endpoint's port in traefik. If
@@ -245,11 +245,11 @@ explicitly set the port binding via service label, like so:
 ```yaml
 services:
   nginx:
-    image: "nginx:alpine"
+    image: nginx:1.31.8-alpine
     network_mode: host
     ports:
-      - 8088:80
-      - 8888:81
+      - '8088:80'
+      - '8888:81'
     labels:
       # (note: other labels snipped for brevity)
       - "traefik.http.services.nginx.loadbalancer.server.port=8088"
@@ -268,14 +268,14 @@ configure `kop` with a namespace:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.3"
+    image: ghcr.io/baragoon/traefik-kop:0.22.3
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - "REDIS_ADDR=192.168.1.50:6379"
-      - "BIND_IP=192.168.1.75"
-      - "NAMESPACE=staging"
+      REDIS_ADDR: 192.168.1.50:6379
+      BIND_IP: 192.168.1.75
+      NAMESPACE: staging
 ```
 
 Then add the `kop.namespace` label to your target services, along with the usual traefik labels:
@@ -283,10 +283,10 @@ Then add the `kop.namespace` label to your target services, along with the usual
 ```yaml
 services:
   nginx:
-    image: "nginx:alpine"
+    image: nginx:1.31.8-alpine
     restart: unless-stopped
     ports:
-      - 8088:80
+      - '8088:80'
     labels:
       - "kop.namespace=staging"
       - "traefik.enable=true"
@@ -301,7 +301,7 @@ services:
     # ...
     environment:
       # will expose any service with either 'dev' or 'staging'
-      - "NAMESPACE=dev,staging"
+      NAMESPACE: dev,staging
 ```
 
 ```yaml
@@ -339,9 +339,9 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - "REDIS_ADDR=192.168.1.50:6379"
-      - "BIND_IP=192.168.1.75"
-      - "DOCKER_PREFIX=kop.public"
+      REDIS_ADDR: 192.168.1.50:6379
+      BIND_IP: 192.168.1.75
+      DOCKER_PREFIX: kop.public
 
   nginx:
     labels:
@@ -382,13 +382,13 @@ For example:
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.3"
+    image: ghcr.io/baragoon/traefik-kop:0.22.3
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      REDIS_ADDR: "172.28.183.97:6380"
-      BIND_IP: "172.28.183.97"
+      REDIS_ADDR: 172.28.183.97:6380
+      BIND_IP: 172.28.183.97
       DOCKER_CONFIG: |
         ---
         docker:
@@ -405,14 +405,14 @@ always writes to the current master, even after a failover.
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.3"
+    image: ghcr.io/baragoon/traefik-kop:0.22.3
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - "REDIS_SENTINEL_ADDRS=sentinel1:26379,sentinel2:26379,sentinel3:26379"
-      - "REDIS_SENTINEL_MASTER=mymaster"
-      - "BIND_IP=192.168.1.75"
+      REDIS_SENTINEL_ADDRS: sentinel1:26379,sentinel2:26379,sentinel3:26379
+      REDIS_SENTINEL_MASTER: mymaster
+      BIND_IP: 192.168.1.75
 ```
 
 When Sentinel is configured, the `--redis-addr` flag is ignored.
