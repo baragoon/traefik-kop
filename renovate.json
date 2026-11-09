@@ -32,6 +32,12 @@
       "ignoreTests": true
     },
     {
+      "matchManagers": ["docker-compose"],
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
       "matchDatasources": ["go"],
       "matchPackageNames": ["github.com/containous/go-http-auth"],
       "enabled": false
