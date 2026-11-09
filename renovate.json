@@ -44,6 +44,14 @@
     {
       "matchManagers": ["custom.regex"],
       "matchPackageNames": ["nginx"],
+      "pinDigests": false,
+      "automerge": true,
+      "automergeType": "branch",
+      "ignoreTests": true
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["nginx"],
       "pinDigests": false
     },
     {
