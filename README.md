@@ -334,7 +334,7 @@ becomes
 ```yaml
 services:
   traefik-kop:
-    image: "ghcr.io/baragoon/traefik-kop:0.22.4"
+    image: ghcr.io/baragoon/traefik-kop:0.22.4
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
