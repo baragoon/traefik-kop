@@ -1,5 +1,134 @@
 # Changelog
 
+## v0.22.4
+
+### New Features
+
+- Add scheduled security scans for code, secrets, and Go dependencies, with issue reporting for vulnerabilities ([#92](https://github.com/baragoon/traefik-kop/pull/92))
+
+### Other
+
+- Migrate the Docker client to Moby and add real-container integration coverage ([#95](https://github.com/baragoon/traefik-kop/pull/95))
+- Update Moby modules and pin dependencies
+
+## v0.22.3
+
+### Other
+
+- Update the Alpine base image
+
+## v0.22.2
+
+### Other
+
+- Pin the documented image version and update Renovate configuration
+
+## v0.22.1
+
+### Other
+
+- Pin the Alpine base image and GitHub Actions dependencies
+
+## v0.22.0
+
+### New Features
+
+- Add configurable log level ([#85](https://github.com/baragoon/traefik-kop/pull/85))
+
+### Other
+
+- Upgrade Traefik to v3.7.17 and Docker CLI to v29.9.3
+
+## v0.21.8
+
+### Other
+
+- Upgrade the Go toolchain and module directive to Go 1.27.3
+
+## v0.21.7
+
+### Other
+
+- Update Fiber to v3.6.1, Traefik to v3.7.16, Docker CLI to v29.9.2, and miniredis to v2.40.0
+
+## v0.21.6
+
+### Other
+
+- Update Traefik to v3.7.14, Docker CLI to v29.9.0, Redis client to v9.23.0, and urfave/cli to v3.14.0
+
+## v0.21.5
+
+### Other
+
+- Update Docker CLI to v29.8.2 and urfave/cli to v3.13.0
+
+## v0.21.4
+
+### Other
+
+- Update Traefik to v3.7.13, Docker CLI to v29.8.1, and urfave/cli to v3.12.0
+
+## v0.21.3
+
+### Other
+
+- Update Docker CLI to v29.8.0 and miniredis to v2.39.0
+
+## v0.21.2
+
+### Other
+
+- Update Traefik to v3.7.12
+
+## v0.21.1
+
+### Other
+
+- Migrate to Fiber v3 and urfave/cli v3
+- Update logrus to v1.10.2
+
+## v0.21.0
+
+### Other
+
+- Upgrade the Go toolchain to Go 1.27
+
+## v0.20.8
+
+### Fixes
+
+- Fix the Redis TLS server name override ([#47](https://github.com/baragoon/traefik-kop/pull/47))
+
+## v0.20.7
+
+- No user-facing changes
+
+## v0.20.6
+
+- No user-facing changes
+
+## v0.20.5
+
+### New Features
+
+- Migrate to Fiber v3 and urfave/cli v3
+- Build and publish multi-architecture Docker images
+
+### Fixes
+
+- Copy the correct architecture binary in Docker builds
+
+### Other
+
+- Upgrade to Go 1.26 and update dependencies and GitHub Actions
+
+## v0.20.4
+
+### New Features
+
+- Add TLS support ([#1](https://github.com/baragoon/traefik-kop/pull/1))
+
 ## v0.20.1
 
 ### Fixes
