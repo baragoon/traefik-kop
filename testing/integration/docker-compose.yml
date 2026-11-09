@@ -26,7 +26,7 @@ services:
         condition: service_healthy
 
   whoami:
-    image: traefik/whoami:v1.10.3
+    image: traefik/whoami:v1.12.0
     hostname: integration-whoami
     labels:
       traefik.http.routers.integration.rule: "Host(`integration.test`)"
