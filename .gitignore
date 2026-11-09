@@ -5,6 +5,3 @@
 *.out
 .history/
 *.tmp
-
-# temp files created by sugardb (used in tests)
-aof/
