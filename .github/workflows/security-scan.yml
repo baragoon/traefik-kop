@@ -1,0 +1,129 @@
+name: Security scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: autobuild
+          - language: actions
+            build-mode: none
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      - name: Autobuild
+        if: matrix.build-mode == 'autobuild'
+        uses: github/codeql-action/autobuild@v4
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  secrets:
+    name: Secrets (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        run: >-
+          docker run --rm
+          -v "${{ github.workspace }}:/repo"
+          -w /repo
+          zricethezav/gitleaks:v8.24.3
+          detect --source /repo --redact --verbose
+
+  go-vuln:
+    name: Go vulnerability check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Scan Go code and dependencies
+        id: scan
+        continue-on-error: true
+        run: |
+          set +e
+          "$HOME/go/bin/govulncheck" ./... 2>&1 | tee govulncheck.txt
+          scan_status=${PIPESTATUS[0]}
+          if grep -qE '^Vulnerability #[0-9]+:' govulncheck.txt; then
+            echo "vulnerabilities=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "vulnerabilities=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit "$scan_status"
+
+      - name: Open or update vulnerability issue
+        if: steps.scan.outputs.vulnerabilities == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            printf '%s\n' '## Summary' ''
+            printf '%s\n' 'govulncheck detected vulnerabilities in the Go module.'
+            printf '%s\n' '' "- Commit: \`$COMMIT_SHA\`" "- Workflow run: $RUN_URL"
+            printf '%s\n' '' '## Findings and call traces' '' 'The scanner output below identifies affected vulnerabilities, packages, and reachable call traces. Review the traces to assess whether the vulnerable code path is reachable in this application; no exploit PoC is generated.'
+            printf '%s\n' '' '```text'
+            cat govulncheck.txt
+            printf '%s\n' '```'
+          } > issue-body.md
+
+          issue_number=$(gh issue list --state open --search '"Go vulnerabilities detected" in:title' --json number --jq '.[0].number // empty')
+          if [ -n "$issue_number" ]; then
+            gh issue edit "$issue_number" --body-file issue-body.md
+          else
+            gh issue create --title "Security: Go vulnerabilities detected" --body-file issue-body.md
+          fi
+
+      - name: Fail if vulnerability scan failed
+        if: steps.scan.outcome == 'failure'
+        run: exit 1
