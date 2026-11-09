@@ -18,7 +18,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
   redis:
-    image: redis:8-alpine
+    image: redis:8-alpine@sha256:71885d8cc6e42f2bc0aa2eb853bfc4be200b5108a46ac50e117ae1df0531fb80
     networks:
       - kop_test
       - default

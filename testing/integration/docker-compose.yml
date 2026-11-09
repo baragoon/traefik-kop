@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:8.10-alpine
+    image: redis:8.10-alpine@sha256:71885d8cc6e42f2bc0aa2eb853bfc4be200b5108a46ac50e117ae1df0531fb80
     ports:
       - "127.0.0.1::6379"
     healthcheck:
@@ -10,7 +10,7 @@ services:
       retries: 60
 
   traefik:
-    image: traefik:v3.7.17
+    image: traefik:v3.7.17@sha256:f4bb143d1135a579b630ed491e17ec50f6f7c9c6a30585ff3d385471d2a86f5a
     command:
       - --api.insecure=true
       - --entrypoints.web.address=:80
@@ -26,7 +26,7 @@ services:
         condition: service_healthy
 
   whoami:
-    image: traefik/whoami:v1.12.0
+    image: traefik/whoami:v1.12.0@sha256:c4717a8d1f0134a7444e24f881160e033991f23027c6c5a9a3f8fd22e70d1d44
     hostname: integration-whoami
     labels:
       traefik.http.routers.integration.rule: "Host(`integration.test`)"

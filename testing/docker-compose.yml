@@ -1,7 +1,7 @@
 services:
   # Redis for use in testing, if we don't have one available locally
   redis:
-    image: "redis:alpine"
+    image: "redis:alpine@sha256:71885d8cc6e42f2bc0aa2eb853bfc4be200b5108a46ac50e117ae1df0531fb80"
     restart: unless-stopped
     ports:
       - 6380:6379
@@ -113,7 +113,7 @@ services:
 
   # Basic nginx with a simple healthcheck
   nginx:
-    image: "nginx:alpine"
+    image: "nginx:alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11"
     restart: unless-stopped
     ports:
       - 8088:80
@@ -132,7 +132,7 @@ services:
 
   # Pihole to test a specific bug report
   pihole:
-    image: "pihole/pihole:latest"
+    image: "pihole/pihole:latest@sha256:30f803ad5dd60ff96cc0a63008a2e9271af481c1b0399a182192b2e91152c1f9"
     restart: unless-stopped
     ports:
       - 8089:80
@@ -145,7 +145,7 @@ services:
       - "traefik.http.services.pihole.loadbalancer.server.port=8089"
 
   gitea:
-    image: gitea/gitea
+    image: gitea/gitea@sha256:8967bf9deaf3c5c4adae13519436dc1b20c646ac83fe37ae810c933a1045227d
     labels:
       traefik.enable: true
       # http
@@ -160,7 +160,7 @@ services:
       traefik.tcp.services.gitea-ssh.loadbalancer.server.port: 20022
 
   ephemeral:
-    image: "nginx:alpine"
+    image: "nginx:alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11"
     restart: "no"
     ports:
       - 80
@@ -174,7 +174,7 @@ services:
       # - "traefik.http.services.ephemeral.loadbalancer.server.port=8099"
 
   nginx_prefix:
-    image: "nginx:alpine"
+    image: "nginx:alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11"
     restart: unless-stopped
     ports:
       - 8090:80
