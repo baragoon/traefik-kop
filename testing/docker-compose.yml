@@ -132,7 +132,7 @@ services:
 
   # Pihole to test a specific bug report
   pihole:
-    image: "pihole/pihole:latest@sha256:30f803ad5dd60ff96cc0a63008a2e9271af481c1b0399a182192b2e91152c1f9"
+    image: "pihole/pihole:latest@sha256:66c798d79a95c2691f280329c3611dba1746117c61c9f331907ca35a06a52778"
     restart: unless-stopped
     ports:
       - 8089:80
