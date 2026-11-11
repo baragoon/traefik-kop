@@ -141,6 +141,23 @@ jobs:
             gh issue create --title "Security: Go vulnerabilities detected" --body-file issue-body.md
           fi
 
+      - name: Close resolved vulnerability issues
+        if: >-
+          steps.scan.outcome == 'success' &&
+          steps.scan.outputs.vulnerabilities == 'false' &&
+          github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          for issue_number in $(gh issue list --state open --search '"Go vulnerabilities detected" in:title' --json number --jq '.[].number'); do
+            gh issue close "$issue_number" --reason completed --comment "govulncheck no longer reports vulnerabilities as of \`$COMMIT_SHA\`. Closing automatically.
+
+          Workflow run: $RUN_URL"
+          done
+
       - name: Fail if vulnerability scan failed
         if: steps.scan.outcome == 'failure'
         run: exit 1
