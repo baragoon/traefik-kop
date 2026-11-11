@@ -68,7 +68,8 @@
       "matchManagers": ["docker-compose"],
       "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
       "automerge": true,
-      "automergeType": "branch"
+      "automergeType": "branch",
+      "ignoreTests": true
     },
     {
       "matchDatasources": ["go"],
