@@ -2,7 +2,7 @@ version: '3'
 
 services:
   traefik-kop:
-    image: ghcr.io/baragoon/traefik-kop:0.22.5@sha256:0e1f5bb2950c5a6f4ab797330c0b888db2808d4b873379de73a4077687911caa
+    image: ghcr.io/baragoon/traefik-kop:0.22.6@sha256:7c15432faddd1f64376c5ab85a362594356642d28174c65fce4f40e327b194ba
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
