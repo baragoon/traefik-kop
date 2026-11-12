@@ -80,7 +80,7 @@ func createConfigHandler(config Config, store TraefikStore, dp *docker.Provider,
 
 		err := store.Store(conf)
 		if err != nil {
-			panic(err)
+			log.Error().Err(err).Msg("failed to store Traefik configuration")
 		}
 	}
 }

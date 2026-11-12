@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
 )
@@ -249,70 +248,90 @@ func (s *RedisStore) Store(conf dynamic.Configuration) error {
 
 // storeLocked must be called with mu held.
 func (s *RedisStore) storeLocked(conf dynamic.Configuration) error {
-	for _, entry := range []struct {
-		values interface{}
-		name   string
-	}{
-		{conf.HTTP.Middlewares, "http_middlewares"},
-		{conf.HTTP.Routers, "http_routers"},
-		{conf.HTTP.Services, "http_services"},
-		{conf.TCP.Middlewares, "tcp_middlewares"},
-		{conf.TCP.Routers, "tcp_routers"},
-		{conf.TCP.Services, "tcp_services"},
-		{conf.UDP.Routers, "udp_routers"},
-		{conf.UDP.Services, "udp_services"},
-	} {
-		if err := s.removeOldKeys(entry.values, entry.name); err != nil {
-			return fmt.Errorf("failed to update %s ownership: %w", entry.name, err)
-		}
-	}
-
 	kv, err := ConfigToKV(conf)
 	if err != nil {
 		return err
 	}
+	ctx := context.Background()
+	keysToRemove, err := s.keysToRemove(ctx, conf, kv)
+	if err != nil {
+		return err
+	}
+	ownership := ownershipSetsForConfig(conf)
+
+	stagePrefix := fmt.Sprintf("traefik-kop:staging:%s:%d", s.Hostname, time.Now().UnixNano())
+	var stageKeys []string
+	defer func() {
+		if len(stageKeys) == 0 {
+			return
+		}
+		if err := s.client.Unlink(ctx, stageKeys...).Err(); err != nil {
+			log.Warn().Err(err).Msg("failed to clean up staged Redis configuration")
+		}
+	}()
 
 	sortedKeys := collectKeys(kv)
 	sort.Strings(sortedKeys)
+	type rename struct {
+		source string
+		target string
+		expire bool
+	}
+	var renames []rename
 	for _, k := range sortedKeys {
 		v := kv[k]
 		log.Debug().Msgf("writing %s = %s", k, v)
-
 		if matches := svcAddrRe.FindStringSubmatch(k); matches != nil {
 			log.Info().Str("service", matches[2]).Str("service-type", matches[1]).Msgf("publishing %s", v)
 		}
 
-		if err := s.client.Set(context.Background(), k, v, s.TTL).Err(); err != nil {
-			return fmt.Errorf("failed to set Redis key %s: %w", k, err)
+		stageKey := fmt.Sprintf("%s:config:%d", stagePrefix, len(renames))
+		stageKeys = append(stageKeys, stageKey)
+		if err := s.client.Set(ctx, stageKey, v, 0).Err(); err != nil {
+			return fmt.Errorf("failed to stage Redis key %s: %w", k, err)
 		}
+		renames = append(renames, rename{source: stageKey, target: k, expire: true})
 	}
 
-	// Clean up stale loadBalancer/servers/N entries within services.
-	// removeOldKeys() only diffs at the service name level, so when a service
-	// goes from 2 servers to 1, the old servers/1/* keys are left behind.
-	if err := s.removeStaleServerKeys(kv, conf.HTTP.Services, "http"); err != nil {
-		return err
-	}
-	if err := s.removeStaleServerKeys(kv, conf.TCP.Services, "tcp"); err != nil {
-		return err
-	}
-	if err := s.removeStaleServerKeys(kv, conf.UDP.Services, "udp"); err != nil {
-		return err
-	}
-
-	for _, name := range []string{
-		"http_middlewares", "http_routers", "http_services",
-		"tcp_middlewares", "tcp_routers", "tcp_services",
-		"udp_routers", "udp_services",
-	} {
-		if err := s.swapKeys(s.sk(name)); err != nil {
-			return err
+	for name, set := range ownership {
+		if len(set.members) == 0 {
+			continue
 		}
+		stageKey := fmt.Sprintf("%s:ownership:%s", stagePrefix, name)
+		stageKeys = append(stageKeys, stageKey)
+		if err := s.client.SAdd(ctx, stageKey, mkslice(set.members)...).Err(); err != nil {
+			return fmt.Errorf("failed to stage Redis ownership set %s: %w", name, err)
+		}
+		renames = append(renames, rename{source: stageKey, target: s.sk(name)})
 	}
 
-	// Update sentinel key with current timestamp
-	if err := s.client.Set(context.Background(), s.sk("kop_last_update"), time.Now().Unix(), s.TTL).Err(); err != nil {
-		return fmt.Errorf("failed to update Redis status key: %w", err)
+	statusStageKey := fmt.Sprintf("%s:status", stagePrefix)
+	stageKeys = append(stageKeys, statusStageKey)
+	if err := s.client.Set(ctx, statusStageKey, time.Now().Unix(), 0).Err(); err != nil {
+		return fmt.Errorf("failed to stage Redis status key: %w", err)
+	}
+	renames = append(renames, rename{source: statusStageKey, target: s.sk("kop_last_update"), expire: true})
+
+	_, err = s.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		for _, item := range renames {
+			pipe.Rename(ctx, item.source, item.target)
+			if item.expire && s.TTL > 0 {
+				pipe.Expire(ctx, item.target, s.TTL)
+			}
+		}
+		if len(keysToRemove) > 0 {
+			pipe.Unlink(ctx, keysToRemove...)
+		}
+		for name, set := range ownership {
+			if len(set.members) == 0 {
+				pipe.Unlink(ctx, s.sk(name))
+			}
+			pipe.Del(ctx, s.sk(name)+"_new")
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to commit Redis configuration: %w", err)
 	}
 
 	s.localKV = s.localConfigKV(conf, kv)
@@ -341,23 +360,27 @@ type ownershipSet struct {
 	members  []string
 }
 
-func (s *RedisStore) expectedOwnershipSets() map[string]ownershipSet {
+func ownershipSetsForConfig(conf dynamic.Configuration) map[string]ownershipSet {
 	return map[string]ownershipSet{
-		"http_middlewares": {"http", "middlewares", collectKeys(s.lastConfig.HTTP.Middlewares)},
-		"http_routers":     {"http", "routers", collectKeys(s.lastConfig.HTTP.Routers)},
-		"http_services":    {"http", "services", collectKeys(s.lastConfig.HTTP.Services)},
-		"tcp_middlewares":  {"tcp", "middlewares", collectKeys(s.lastConfig.TCP.Middlewares)},
-		"tcp_routers":      {"tcp", "routers", collectKeys(s.lastConfig.TCP.Routers)},
-		"tcp_services":     {"tcp", "services", collectKeys(s.lastConfig.TCP.Services)},
-		"udp_routers":      {"udp", "routers", collectKeys(s.lastConfig.UDP.Routers)},
-		"udp_services":     {"udp", "services", collectKeys(s.lastConfig.UDP.Services)},
+		"http_middlewares":       {"http", "middlewares", collectKeys(conf.HTTP.Middlewares)},
+		"http_routers":           {"http", "routers", collectKeys(conf.HTTP.Routers)},
+		"http_services":          {"http", "services", collectKeys(conf.HTTP.Services)},
+		"http_serversTransports": {"http", "serversTransports", collectKeys(conf.HTTP.ServersTransports)},
+		"tcp_middlewares":        {"tcp", "middlewares", collectKeys(conf.TCP.Middlewares)},
+		"tcp_routers":            {"tcp", "routers", collectKeys(conf.TCP.Routers)},
+		"tcp_services":           {"tcp", "services", collectKeys(conf.TCP.Services)},
+		"tcp_serversTransports":  {"tcp", "serversTransports", collectKeys(conf.TCP.ServersTransports)},
+		"udp_routers":            {"udp", "routers", collectKeys(conf.UDP.Routers)},
+		"udp_services":           {"udp", "services", collectKeys(conf.UDP.Services)},
 	}
+}
+
+func (s *RedisStore) expectedOwnershipSets() map[string]ownershipSet {
+	return ownershipSetsForConfig(*s.lastConfig)
 }
 
 func (s *RedisStore) ensureOwnershipSets(
 	ctx context.Context,
-	fullReset bool,
-	presentKeys map[string]struct{},
 ) (map[string]map[string]struct{}, bool, error) {
 	expectedSets := s.expectedOwnershipSets()
 	currentSets := make(map[string]map[string]struct{}, len(expectedSets))
@@ -379,17 +402,7 @@ func (s *RedisStore) ensureOwnershipSets(
 		var missing []interface{}
 		for _, member := range expected.members {
 			if _, ok := present[member]; !ok {
-				if fullReset {
-					missing = append(missing, member)
-					continue
-				}
-				prefix := fmt.Sprintf("traefik/%s/%s/%s/", expected.protocol, expected.resource, stripDocker(member))
-				for key := range presentKeys {
-					if strings.HasPrefix(key, prefix) {
-						missing = append(missing, member)
-						break
-					}
-				}
+				missing = append(missing, member)
 			}
 		}
 		if len(missing) > 0 {
@@ -405,17 +418,6 @@ func (s *RedisStore) ensureOwnershipSets(
 	}
 
 	return currentSets, rebuilt, nil
-}
-
-func redisValueString(value interface{}) string {
-	switch value := value.(type) {
-	case string:
-		return value
-	case []byte:
-		return string(value)
-	default:
-		return fmt.Sprint(value)
-	}
 }
 
 func isLocallyOwnedKey(key string, expectedSets map[string]ownershipSet, currentSets map[string]map[string]struct{}) bool {
@@ -449,25 +451,15 @@ func (s *RedisStore) KeepConfAlive() error {
 		return fmt.Errorf("failed to check Redis configuration: %w", err)
 	}
 
-	presentKeys := make(map[string]struct{}, len(keys))
 	missing := make([]string, 0)
-	mismatched := make(map[string]string)
 	for i, key := range keys {
-		value := values[i]
-		if value == nil {
+		if values[i] == nil {
 			missing = append(missing, key)
-			continue
-		}
-		presentKeys[key] = struct{}{}
-		actual := redisValueString(value)
-		if actual != fmt.Sprint(s.localKV[key]) {
-			mismatched[key] = actual
 		}
 	}
 	markerMissing := values[len(keys)] == nil
-	fullReset := markerMissing && len(presentKeys) == 0
 	expectedSets := s.expectedOwnershipSets()
-	currentSets, setsRebuilt, err := s.ensureOwnershipSets(ctx, fullReset, presentKeys)
+	currentSets, setsRebuilt, err := s.ensureOwnershipSets(ctx)
 	if err != nil {
 		return err
 	}
@@ -475,23 +467,13 @@ func (s *RedisStore) KeepConfAlive() error {
 
 	if recovering {
 		log.Warn().Msg("Redis configuration is incomplete. Restoring missing local keys")
-		for key, actual := range mismatched {
-			s.localKV[key] = actual
-		}
 		for _, key := range missing {
 			if !isLocallyOwnedKey(key, expectedSets, currentSets) {
 				continue
 			}
-			created, err := s.client.SetNX(ctx, key, s.localKV[key], s.TTL).Result()
+			_, err := s.client.SetNX(ctx, key, s.localKV[key], s.TTL).Result()
 			if err != nil {
 				return fmt.Errorf("failed to restore Redis key %s: %w", key, err)
-			}
-			if !created {
-				value, err := s.client.Get(ctx, key).Result()
-				if err != nil {
-					return fmt.Errorf("failed to read Redis key %s after concurrent restore: %w", key, err)
-				}
-				s.localKV[key] = value
 			}
 		}
 	} else {
@@ -502,13 +484,6 @@ func (s *RedisStore) KeepConfAlive() error {
 	expirations := make(map[string]*redis.BoolCmd)
 	for _, key := range keys {
 		if !isLocallyOwnedKey(key, expectedSets, currentSets) {
-			continue
-		}
-		if _, mismatch := mismatched[key]; mismatch {
-			if recovering {
-				continue
-			}
-			pipe.Set(ctx, key, s.localKV[key], s.TTL)
 			continue
 		}
 		if s.TTL > 0 {
@@ -535,16 +510,9 @@ func (s *RedisStore) KeepConfAlive() error {
 			if expiration.Val() {
 				continue
 			}
-			created, err := s.client.SetNX(ctx, key, s.localKV[key], s.TTL).Result()
+			_, err := s.client.SetNX(ctx, key, s.localKV[key], s.TTL).Result()
 			if err != nil {
 				return fmt.Errorf("failed to restore Redis key %s: %w", key, err)
-			}
-			if !created {
-				value, err := s.client.Get(ctx, key).Result()
-				if err != nil {
-					return fmt.Errorf("failed to read Redis key %s after concurrent restore: %w", key, err)
-				}
-				s.localKV[key] = value
 			}
 		}
 		if markerExpiration != nil && !markerExpiration.Val() {
@@ -557,21 +525,6 @@ func (s *RedisStore) KeepConfAlive() error {
 	return nil
 }
 
-func (s *RedisStore) swapKeys(setkey string) error {
-	// store router name list by renaming
-	err := s.client.Rename(context.Background(), setkey+"_new", setkey).Err()
-	if err != nil {
-		if strings.Contains(err.Error(), "no such key") {
-			if err := s.client.Unlink(context.Background(), setkey).Err(); err != nil {
-				return fmt.Errorf("unlink failed: %w", err)
-			}
-			return nil
-		}
-		return fmt.Errorf("rename failed: %w", err)
-	}
-	return nil
-}
-
 // k returns the actual config key path
 // e.g., traefik/http/routers/nginx@docker
 func (s *RedisStore) k(sk, b string) string {
@@ -580,83 +533,83 @@ func (s *RedisStore) k(sk, b string) string {
 	return fmt.Sprintf("%s/%s", k, b)
 }
 
-func (s *RedisStore) removeKeys(setkey string, keys []string) error {
-	if len(keys) == 0 {
-		return nil
-	}
-	log.Debug().Func(func(e *zerolog.Event) {
-		e.Msgf("removing keys from %s: %s", setkey, strings.Join(keys, ","))
-	})
-	for _, removeKey := range keys {
-		keyPath := s.k(setkey, removeKey) + "/*"
-		log.Debug().Msgf("removing keys matching %s", keyPath)
-		res, err := s.client.Keys(context.Background(), keyPath).Result()
-		if err != nil {
-			return fmt.Errorf("fetch failed: %w", err)
-		}
-		if err := s.client.Unlink(context.Background(), res...).Err(); err != nil {
-			return fmt.Errorf("unlink failed: %w", err)
+func (s *RedisStore) keysToRemove(ctx context.Context, conf dynamic.Configuration, kv map[string]interface{}) ([]string, error) {
+	newOwnership := ownershipSetsForConfig(conf)
+	oldOwnership := make(map[string]map[string]struct{})
+	if s.lastConfig != nil {
+		for name, set := range s.expectedOwnershipSets() {
+			oldOwnership[name] = make(map[string]struct{}, len(set.members))
+			for _, member := range set.members {
+				oldOwnership[name][member] = struct{}{}
+			}
 		}
 	}
-	return nil
-}
 
-func (s *RedisStore) removeOldKeys(m interface{}, setname string) error {
-	setkey := s.sk(setname)
-	if err := s.client.Del(context.Background(), setkey+"_new").Err(); err != nil {
-		return fmt.Errorf("clear temporary ownership set: %w", err)
-	}
-
-	// store new keys in temp set
-	newkeys := collectKeys(m)
-	if len(newkeys) == 0 {
-		res, err := s.client.SMembers(context.Background(), setkey).Result()
+	remove := make(map[string]struct{})
+	for name, newSet := range newOwnership {
+		members, err := s.client.SMembers(ctx, s.sk(name)).Result()
 		if err != nil {
-			return fmt.Errorf("fetch failed: %w", err)
+			return nil, fmt.Errorf("failed to read Redis ownership set %s: %w", name, err)
 		}
-		return s.removeKeys(setname, res)
-
-	} else {
-		// make a diff and remove
-		err := s.client.SAdd(context.Background(), setkey+"_new", mkslice(newkeys)...).Err()
-		if err != nil {
-			return fmt.Errorf("add failed: %w", err)
+		old := oldOwnership[name]
+		if old == nil {
+			old = make(map[string]struct{})
+			oldOwnership[name] = old
+		}
+		for _, member := range members {
+			old[member] = struct{}{}
 		}
 
-		// diff the existing keys with the new ones
-		res, err := s.client.SDiff(context.Background(), setkey, setkey+"_new").Result()
-		if err != nil {
-			return fmt.Errorf("diff failed: %w", err)
+		current := make(map[string]struct{}, len(newSet.members))
+		for _, member := range newSet.members {
+			current[member] = struct{}{}
 		}
-		return s.removeKeys(setname, res)
-	}
-}
-
-func (s *RedisStore) removeStaleServerKeys(kv map[string]interface{}, services interface{}, proto string) error {
-	ctx := context.Background()
-	svcMap := reflect.ValueOf(services)
-	if svcMap.Kind() != reflect.Map {
-		return nil
-	}
-
-	for _, nameVal := range svcMap.MapKeys() {
-		name := stripDocker(nameVal.String())
-		prefix := fmt.Sprintf("traefik/%s/services/%s/loadBalancer/servers/", proto, name)
-
-		existingKeys, err := s.client.Keys(ctx, prefix+"*").Result()
-		if err != nil {
-			return fmt.Errorf("failed to find server keys for service %s: %w", name, err)
-		}
-		for _, key := range existingKeys {
-			if _, exists := kv[key]; !exists {
-				log.Debug().Msgf("removing stale server key: %s", key)
-				if err := s.client.Unlink(ctx, key).Err(); err != nil {
-					return fmt.Errorf("failed to remove stale server key %s: %w", key, err)
+		for member := range old {
+			if _, keep := current[member]; keep {
+				continue
+			}
+			pattern := s.k(name, member) + "/*"
+			keys, err := s.client.Keys(ctx, pattern).Result()
+			if err != nil {
+				return nil, fmt.Errorf("failed to find removed resource keys for %s: %w", member, err)
+			}
+			for _, key := range keys {
+				if _, exists := kv[key]; !exists {
+					remove[key] = struct{}{}
 				}
 			}
 		}
 	}
-	return nil
+
+	for proto, services := range map[string]interface{}{
+		"http": conf.HTTP.Services,
+		"tcp":  conf.TCP.Services,
+		"udp":  conf.UDP.Services,
+	} {
+		serviceMap := reflect.ValueOf(services)
+		if !serviceMap.IsValid() || serviceMap.Kind() != reflect.Map {
+			continue
+		}
+		for _, name := range serviceMap.MapKeys() {
+			prefix := fmt.Sprintf("traefik/%s/services/%s/loadBalancer/servers/", proto, stripDocker(name.String()))
+			keys, err := s.client.Keys(ctx, prefix+"*").Result()
+			if err != nil {
+				return nil, fmt.Errorf("failed to find server keys for service %s: %w", name.String(), err)
+			}
+			for _, key := range keys {
+				if _, exists := kv[key]; !exists {
+					remove[key] = struct{}{}
+				}
+			}
+		}
+	}
+
+	keys := make([]string, 0, len(remove))
+	for key := range remove {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys, nil
 }
 
 // mkslice converts a string slice to an interface slice

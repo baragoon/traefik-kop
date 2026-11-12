@@ -125,8 +125,11 @@ func (h *failingSetHook) DialHook(next redis.DialHook) redis.DialHook {
 func (h *failingSetHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 	return func(ctx context.Context, cmd redis.Cmder) error {
 		args := cmd.Args()
-		if h.fail && len(args) > 1 && args[0] == "set" && args[1] == h.key {
-			return errors.New("injected Redis write failure")
+		if h.fail && len(args) > 1 && args[0] == "set" {
+			key, ok := args[1].(string)
+			if ok && (key == h.key || strings.Contains(key, ":config:")) {
+				return errors.New("injected Redis write failure")
+			}
 		}
 		return next(ctx, cmd)
 	}
@@ -248,14 +251,14 @@ func Test_redisStoreKeepConfAliveDoesNotRestoreRemovedRoutes(t *testing.T) {
 	routerKeys, err := rs.client.Keys(context.Background(), routerPrefix+"*").Result()
 	require.NoError(t, err)
 	require.NotEmpty(t, routerKeys)
-	require.NoError(t, rs.client.Unlink(context.Background(), routerKeys...).Err())
-	_, err = server.SRem(rs.sk("http_routers"), "nginx@docker")
-	require.NoError(t, err)
+	conf.HTTP.Routers = make(map[string]*dynamic.Router)
+	require.NoError(t, store.Store(*conf))
 
 	require.NoError(t, store.KeepConfAlive())
 	for _, key := range routerKeys {
 		require.False(t, server.Exists(key), "removed route key %s was restored", key)
 	}
+	require.False(t, server.Exists(rs.sk("http_routers")))
 }
 
 func Test_redisStoreKeepConfAliveChecksKeysWithoutTTL(t *testing.T) {
@@ -308,6 +311,9 @@ func Test_redisStoreStoreWriteFailuresDoNotAdvanceCache(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(updatedJSON), updatedConf))
 	require.Error(t, store.Store(*updatedConf))
 
+	value, err := store.Get(serviceKey)
+	require.NoError(t, err)
+	require.Equal(t, "http://172.20.0.2:80", value)
 	require.Equal(t, oldConf.HTTP.Services["nginx@docker"].LoadBalancer.Servers[0].URL,
 		rs.lastConfig.HTTP.Services["nginx@docker"].LoadBalancer.Servers[0].URL)
 	require.Equal(t, "http://172.20.0.2:80", rs.localKV[serviceKey])
@@ -319,9 +325,106 @@ func Test_redisStoreStoreWriteFailuresDoNotAdvanceCache(t *testing.T) {
 
 	server.Set(serviceKey, "stale-value")
 	require.NoError(t, store.KeepConfAlive())
+	value, err = store.Get(serviceKey)
+	require.NoError(t, err)
+	require.Equal(t, "stale-value", value)
+}
+
+func Test_redisStoreRemovesExpiredResourcesWithoutEmptyUnlink(t *testing.T) {
+	server := miniredis.RunT(t)
+	store := NewRedisStore("localhost", server.Addr(), 10, "", "", 0, nil, "", false)
+
+	conf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), conf))
+	require.NoError(t, store.Store(*conf))
+	server.FastForward(10 * time.Second)
+
+	emptyConf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(`{"http":{},"tcp":{},"udp":{}}`), emptyConf))
+	require.NoError(t, store.Store(*emptyConf))
+	require.Equal(t, []string{store.(*RedisStore).sk("kop_last_update")}, server.Keys())
+}
+
+func Test_redisStoreKeepConfAliveRebuildsEvictedOwnershipMember(t *testing.T) {
+	server := miniredis.RunT(t)
+	store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+	rs := store.(*RedisStore)
+
+	conf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), conf))
+	require.NoError(t, store.Store(*conf))
+
+	serviceKey := "traefik/http/services/nginx/loadBalancer/servers/0/url"
+	server.Del(serviceKey)
+	server.Del(rs.sk("http_services"))
+	require.NoError(t, store.KeepConfAlive())
+
 	value, err := store.Get(serviceKey)
 	require.NoError(t, err)
 	require.Equal(t, "http://172.20.0.2:80", value)
+	members, err := server.SMembers(rs.sk("http_services"))
+	require.NoError(t, err)
+	require.Equal(t, []string{"nginx@docker"}, members)
+}
+
+func Test_redisStoreKeepConfAliveRenewsTransportKeys(t *testing.T) {
+	server := miniredis.RunT(t)
+	store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+
+	conf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(`{
+		"http":{"serversTransports":{"custom":{"serverName":"http.example"}}},
+		"tcp":{"serversTransports":{"custom":{"serverName":"tcp.example"}}},
+		"udp":{}
+	}`), conf))
+	kv, err := ConfigToKV(*conf)
+	require.NoError(t, err)
+	require.NoError(t, store.Store(*conf))
+
+	var transportKeys []string
+	for key := range kv {
+		if strings.Contains(key, "/serversTransports/") {
+			transportKeys = append(transportKeys, key)
+		}
+	}
+	require.NotEmpty(t, transportKeys)
+	for _, key := range transportKeys {
+		server.SetTTL(key, 30*time.Second)
+	}
+	server.FastForward(20 * time.Second)
+
+	require.NoError(t, store.KeepConfAlive())
+	for _, key := range transportKeys {
+		require.Equal(t, 30*time.Second, server.TTL(key), key)
+	}
+}
+
+func Test_redisStoreKeepConfAliveRenewsMismatchedKeyDuringRecovery(t *testing.T) {
+	server := miniredis.RunT(t)
+	store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+	rs := store.(*RedisStore)
+
+	conf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), conf))
+	require.NoError(t, store.Store(*conf))
+
+	ruleKey := "traefik/http/routers/nginx/rule"
+	require.NoError(t, server.Set(ruleKey, "Host(`newer.local`)"))
+	server.SetTTL(ruleKey, 5*time.Second)
+	require.NoError(t, store.KeepConfAlive())
+	value, err := store.Get(ruleKey)
+	require.NoError(t, err)
+	require.Equal(t, "Host(`newer.local`)", value)
+	require.Equal(t, 30*time.Second, server.TTL(ruleKey))
+
+	server.SetTTL(ruleKey, 5*time.Second)
+	server.Del(rs.sk("kop_last_update"))
+
+	require.NoError(t, store.KeepConfAlive())
+	value, err = store.Get(ruleKey)
+	require.NoError(t, err)
+	require.Equal(t, "Host(`newer.local`)", value)
+	require.Equal(t, 30*time.Second, server.TTL(ruleKey))
 }
 
 func Test_redisStoreTLSOpts(t *testing.T) {
