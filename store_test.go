@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/alicebob/miniredis/v2"
@@ -50,6 +51,34 @@ func Test_redisStore(t *testing.T) {
 		{"hello-detect", "http", "http://192.168.100.100:5577"},
 		{"hello-detect2", "http", "http://192.168.100.100:5577"},
 	})
+}
+
+func Test_redisStoreKeepConfAliveRefreshesTTL(t *testing.T) {
+	server, err := miniredis.Run()
+	require.NoError(t, err)
+	defer server.Close()
+
+	store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+	rs := store.(*RedisStore)
+
+	conf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), conf))
+	require.NoError(t, store.Store(*conf))
+
+	server.FastForward(20 * time.Second)
+	require.NoError(t, store.KeepConfAlive())
+
+	serviceKey := "traefik/http/services/nginx/loadBalancer/servers/0/url"
+	require.Equal(t, 30*time.Second, server.TTL(serviceKey))
+	require.Equal(t, 30*time.Second, server.TTL(rs.sk("kop_last_update")))
+
+	server.Del(serviceKey)
+	require.NoError(t, store.KeepConfAlive())
+
+	value, err := store.Get(serviceKey)
+	require.NoError(t, err)
+	require.Equal(t, "http://172.20.0.2:80", value)
+	require.Equal(t, 30*time.Second, server.TTL(serviceKey))
 }
 
 func Test_redisStoreTLSOpts(t *testing.T) {

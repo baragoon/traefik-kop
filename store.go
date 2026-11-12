@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -43,6 +44,7 @@ type RedisStore struct {
 
 	client     *redis.Client
 	lastConfig *dynamic.Configuration
+	mu         sync.RWMutex
 }
 
 func redisTLSConfigForAddr(addr string, tlsServerName ...string) *tls.Config {
@@ -126,7 +128,7 @@ func (s *RedisStore) Ping() error {
 
 // sk returns the 'set key' for keeping track of our services/routers/middlewares
 // e.g., traefik_http_routers@culture.local
-func (s RedisStore) sk(b string) string {
+func (s *RedisStore) sk(b string) string {
 	return fmt.Sprintf("traefik_%s@%s", b, s.Hostname)
 }
 
@@ -166,6 +168,9 @@ func (s *RedisStore) Gets(key string) (map[string]string, error) {
 var svcAddrRe = regexp.MustCompile(`^traefik/(tcp|udp|http)/services/([^/]+)/loadBalancer/servers/\d+/(address|url)$`)
 
 func (s *RedisStore) Store(conf dynamic.Configuration) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.removeOldKeys(conf.HTTP.Middlewares, "http_middlewares")
 	s.removeOldKeys(conf.HTTP.Routers, "http_routers")
 	s.removeOldKeys(conf.HTTP.Services, "http_services")
@@ -213,7 +218,7 @@ func (s *RedisStore) Store(conf dynamic.Configuration) error {
 	s.client.Set(context.Background(), s.sk("kop_last_update"), time.Now().Unix(), s.TTL)
 
 	// Store a copy of the configuration in case redis restarts
-	configCopy := conf
+	configCopy := *conf.DeepCopy()
 	s.lastConfig = &configCopy
 
 	return nil
@@ -230,15 +235,45 @@ func (s *RedisStore) NeedsUpdate() bool {
 	return exists == 0
 }
 
-// Push the last configuration if needed
+// Keep the cached configuration alive, restoring it if any key is missing.
 func (s *RedisStore) KeepConfAlive() error {
+	s.mu.RLock()
 	if s.lastConfig == nil {
+		s.mu.RUnlock()
 		return nil // No config to push yet
+	}
+	conf := s.lastConfig.DeepCopy()
+	s.mu.RUnlock()
+
+	if s.TTL > 0 {
+		kv, err := ConfigToKV(*conf)
+		if err != nil {
+			return err
+		}
+
+		ctx := context.Background()
+		pipe := s.client.Pipeline()
+		expirations := make([]*redis.BoolCmd, 0, len(kv)+1)
+		for key := range kv {
+			expirations = append(expirations, pipe.Expire(ctx, key, s.TTL))
+		}
+		expirations = append(expirations, pipe.Expire(ctx, s.sk("kop_last_update"), s.TTL))
+
+		if _, err := pipe.Exec(ctx); err != nil {
+			return fmt.Errorf("failed to refresh Redis key TTLs: %w", err)
+		}
+		for _, expiration := range expirations {
+			if !expiration.Val() {
+				log.Warn().Msg("Redis configuration key is missing. Pushing last known configuration")
+				return s.Store(*conf)
+			}
+		}
+		return nil
 	}
 
 	if s.NeedsUpdate() {
 		log.Warn().Msg("Redis seems to have restarted and needs to be updated. Pushing last known configuration")
-		return s.Store(*s.lastConfig)
+		return s.Store(*conf)
 	}
 
 	return nil
@@ -259,7 +294,7 @@ func (s *RedisStore) swapKeys(setkey string) error {
 
 // k returns the actual config key path
 // e.g., traefik/http/routers/nginx@docker
-func (s RedisStore) k(sk, b string) string {
+func (s *RedisStore) k(sk, b string) string {
 	k := strings.ReplaceAll(fmt.Sprintf("traefik_%s", sk), "_", "/")
 	b = stripDocker(b)
 	return fmt.Sprintf("%s/%s", k, b)
