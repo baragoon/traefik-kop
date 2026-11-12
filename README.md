@@ -369,10 +369,17 @@ The default interval of 60 seconds should be light so as not to cause any
 issues, however it can be adjusted as needed via the `KOP_POLL_INTERVAL` env var
 or set to 0 to disable it completely.
 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:784880e835d5bca28967d582f6affc3857f12b5b26fc2bc5d5fab49e2bb66b88 -->
+
 When `REDIS_TTL` is enabled, this polling interval also refreshes the TTL of the
 cached Redis configuration. Keep `KOP_POLL_INTERVAL` shorter than `REDIS_TTL`;
-setting the poll interval to 0 disables TTL refresh, so the Redis configuration
-will expire.
+setting the poll interval to 0 disables periodic TTL refresh. Redis keys expire
+after `REDIS_TTL` only if no further configuration update occurs; each update
+stores the configuration again and resets the TTL.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 ### Traefik Docker Provider Config
 

@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/alicebob/miniredis/v2"
+	"github.com/moby/moby/api/types/container"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -275,4 +277,60 @@ func Test_redisStoreRemovesStaleServerKeysOnUpdate(t *testing.T) {
 	stale, err := store.Get(staleKey)
 	require.NoError(t, err)
 	require.Empty(t, stale)
+}
+
+func Test_redisStoreKeepConfAliveDoesNotRenewPeerServers(t *testing.T) {
+	for _, proto := range []string{"http", "tcp", "udp"} {
+		t.Run(proto, func(t *testing.T) {
+			server := miniredis.RunT(t)
+			store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+			rs := store.(*RedisStore)
+			field, local, peer := "address", "127.0.0.1:80", "127.0.0.2:80"
+			if proto == "http" {
+				field, local, peer = "url", "http://127.0.0.1:80", "http://127.0.0.2:80"
+			}
+			conf := &dynamic.Configuration{}
+			require.NoError(t, json.Unmarshal([]byte(fmt.Sprintf(`{"http":{},"tcp":{},"udp":{},"%s":{"services":{"nginx@docker":{"loadBalancer":{"servers":[{"%s":"%s"}]}}}}}`, proto, field, local)), conf))
+			prefix := fmt.Sprintf("traefik/%s/services/nginx/loadBalancer/servers/", proto)
+			require.NoError(t, server.Set(prefix+"0/"+field, peer))
+			server.SetTTL(prefix+"0/"+field, 30*time.Second)
+			dc := &dockerCache{client: createTestClient(map[string]string{
+				"kop.merge-lbs": "true",
+				"traefik." + proto + ".services.nginx.loadbalancer.server.port": "80",
+			}), details: make(map[string]container.InspectResponse)}
+			mergeLoadBalancers(dc, conf, store)
+			require.NoError(t, store.Store(*conf))
+			require.NoError(t, store.Store(*conf)) // Reusing the same merged configuration retains ownership.
+			kv, err := store.Gets(prefix + "*")
+			require.NoError(t, err)
+			require.Len(t, kv, 2)
+			var localKey, peerKey string
+			for key, value := range kv {
+				if value == local {
+					localKey = key
+				} else {
+					peerKey = key
+				}
+			}
+			require.NotEmpty(t, localKey)
+			require.NotEmpty(t, peerKey)
+			server.FastForward(20 * time.Second)
+			require.NoError(t, store.KeepConfAlive())
+			require.Equal(t, 30*time.Second, server.TTL(localKey))
+			require.Equal(t, 10*time.Second, server.TTL(peerKey))
+			server.FastForward(11 * time.Second)
+			require.NoError(t, store.KeepConfAlive())
+			require.False(t, server.Exists(peerKey))
+			server.Del(localKey)
+			require.NoError(t, store.KeepConfAlive())
+			require.True(t, server.Exists(localKey))
+			require.False(t, server.Exists(peerKey))
+			server.FlushAll()
+			require.NoError(t, store.KeepConfAlive())
+			require.True(t, server.Exists(localKey))
+			require.False(t, server.Exists(peerKey))
+			require.True(t, server.Exists(rs.sk("kop_last_update")))
+			require.True(t, server.Exists(rs.sk(proto+"_services")))
+		})
+	}
 }

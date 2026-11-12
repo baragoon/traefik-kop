@@ -44,7 +44,11 @@ type RedisStore struct {
 
 	client     *redis.Client
 	lastConfig *dynamic.Configuration
-	mu         sync.RWMutex
+	localKV    map[string]interface{}
+	// Ownership is captured before merging, keyed by the load balancer pointer.
+	serverOwners     map[interface{}]map[string]struct{}
+	lastServerOwners map[interface{}]map[string]struct{}
+	mu               sync.RWMutex
 
 	onStoreAttempt func()
 }
@@ -169,6 +173,69 @@ func (s *RedisStore) Gets(key string) (map[string]string, error) {
 // traefik/udp/services/helloudp/loadBalancer/servers/0/address
 var svcAddrRe = regexp.MustCompile(`^traefik/(tcp|udp|http)/services/([^/]+)/loadBalancer/servers/\d+/(address|url)$`)
 
+func (s *RedisStore) recordServerOwners(lb interface{}, owners map[string]struct{}) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.serverOwners == nil {
+		s.serverOwners = make(map[interface{}]map[string]struct{})
+	}
+	s.serverOwners[lb] = owners
+}
+
+// localConfigKV excludes every field of peer servers, preserving Redis indices.
+// It must be called with mu held.
+func (s *RedisStore) localConfigKV(conf dynamic.Configuration, kv map[string]interface{}) map[string]interface{} {
+	local := make(map[string]interface{}, len(kv))
+	currentOwners := make(map[interface{}]map[string]struct{})
+	for key, value := range kv {
+		local[key] = value
+	}
+	for proto, cfg := range map[string]interface{}{"http": conf.HTTP, "tcp": conf.TCP, "udp": conf.UDP} {
+		v := reflect.ValueOf(cfg)
+		if v.IsNil() {
+			continue
+		}
+		services := v.Elem().FieldByName("Services")
+		for _, name := range services.MapKeys() {
+			svc := services.MapIndex(name)
+			if svc.IsNil() {
+				continue
+			}
+			lb := svc.Elem().FieldByName("LoadBalancer")
+			if lb.IsNil() {
+				continue
+			}
+			owners, tracked := s.serverOwners[lb.Interface()]
+			if !tracked {
+				owners, tracked = s.lastServerOwners[lb.Interface()]
+			}
+			if !tracked {
+				continue
+			}
+			delete(s.serverOwners, lb.Interface())
+			currentOwners[lb.Interface()] = owners
+			servers := lb.Elem().FieldByName("Servers")
+			for i := 0; i < servers.Len(); i++ {
+				field := "Address"
+				if proto == "http" {
+					field = "URL"
+				}
+				if _, owned := owners[servers.Index(i).FieldByName(field).String()]; owned {
+					continue
+				}
+				prefix := fmt.Sprintf("traefik/%s/services/%s/loadBalancer/servers/%d/", proto, stripDocker(name.String()), i)
+				for key := range local {
+					if strings.HasPrefix(key, prefix) {
+						delete(local, key)
+					}
+				}
+			}
+		}
+	}
+	s.lastServerOwners = currentOwners
+	return local
+}
+
 func (s *RedisStore) Store(conf dynamic.Configuration) error {
 	if s.onStoreAttempt != nil {
 		s.onStoreAttempt()
@@ -228,6 +295,8 @@ func (s *RedisStore) storeLocked(conf dynamic.Configuration) error {
 	// Update sentinel key with current timestamp
 	s.client.Set(context.Background(), s.sk("kop_last_update"), time.Now().Unix(), s.TTL)
 
+	s.localKV = s.localConfigKV(conf, kv)
+
 	// Store a copy of the configuration in case redis restarts
 	configCopy := *conf.DeepCopy()
 	s.lastConfig = &configCopy
@@ -254,13 +323,9 @@ func (s *RedisStore) KeepConfAlive() error {
 	if s.lastConfig == nil {
 		return nil // No config to push yet
 	}
-	conf := s.lastConfig.DeepCopy()
 
 	if s.TTL > 0 {
-		kv, err := ConfigToKV(*conf)
-		if err != nil {
-			return err
-		}
+		kv := s.localKV
 
 		ctx := context.Background()
 		pipe := s.client.Pipeline()
@@ -276,7 +341,31 @@ func (s *RedisStore) KeepConfAlive() error {
 		for _, expiration := range expirations {
 			if !expiration.Val() {
 				log.Warn().Msg("Redis configuration key is missing. Pushing last known configuration")
-				return s.storeLocked(*s.lastConfig)
+				// Restore only locally owned configuration. Replaying Store
+				// would also republish expired peer servers from lastConfig.
+				for key, value := range kv {
+					if err := s.client.Set(ctx, key, value, s.TTL).Err(); err != nil {
+						return fmt.Errorf("failed to restore Redis configuration: %w", err)
+					}
+				}
+				// Recreate host bookkeeping sets as well after a Redis reset.
+				for name, entries := range map[string]interface{}{
+					"http_middlewares": s.lastConfig.HTTP.Middlewares,
+					"http_routers":     s.lastConfig.HTTP.Routers,
+					"http_services":    s.lastConfig.HTTP.Services,
+					"tcp_middlewares":  s.lastConfig.TCP.Middlewares,
+					"tcp_routers":      s.lastConfig.TCP.Routers,
+					"tcp_services":     s.lastConfig.TCP.Services,
+					"udp_routers":      s.lastConfig.UDP.Routers,
+					"udp_services":     s.lastConfig.UDP.Services,
+				} {
+					if names := collectKeys(entries); len(names) > 0 {
+						if err := s.client.SAdd(ctx, s.sk(name), mkslice(names)...).Err(); err != nil {
+							return fmt.Errorf("failed to restore Redis bookkeeping: %w", err)
+						}
+					}
+				}
+				return s.client.Set(ctx, s.sk("kop_last_update"), time.Now().Unix(), s.TTL).Err()
 			}
 		}
 		return nil

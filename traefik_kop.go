@@ -682,12 +682,20 @@ func mergeGenericLoadBalancers(
 		if !serversField.IsValid() {
 			continue
 		}
+		owners := make(map[string]struct{})
 		for i := 0; i < serversField.Len(); i++ {
 			server := serversField.Index(i).Interface()
 			k := getKey(server)
 			if k != "" {
 				keySet[k] = struct{}{}
+				owners[k] = struct{}{}
 			}
+		}
+
+		if recorder, ok := store.(interface {
+			recordServerOwners(interface{}, map[string]struct{})
+		}); ok {
+			recorder.recordServerOwners(lbField.Interface(), owners)
 		}
 
 		// Create merged list
