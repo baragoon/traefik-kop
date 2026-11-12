@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"reflect"
 	"regexp"
@@ -356,7 +357,12 @@ func (s *RedisStore) KeepConfAlive() error {
 
 		ctx := context.Background()
 		pipe := s.client.Pipeline()
-		expirations := make([]*redis.BoolCmd, 0, len(kv)+1)
+
+		kvLen := len(kv)
+		if kvLen > math.MaxInt-1 {
+			return fmt.Errorf("configuration too large: %d keys", kvLen)
+		}
+		expirations := make([]*redis.BoolCmd, 0, kvLen+1)
 		for key := range kv {
 			expirations = append(expirations, pipe.Expire(ctx, key, s.TTL))
 		}
