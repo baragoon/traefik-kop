@@ -315,6 +315,33 @@ func (s *RedisStore) NeedsUpdate() bool {
 	return exists == 0
 }
 
+func (s *RedisStore) restoreLocalConfig(ctx context.Context) error {
+	for key, value := range s.localKV {
+		if err := s.client.Set(ctx, key, value, s.TTL).Err(); err != nil {
+			return fmt.Errorf("failed to restore Redis configuration: %w", err)
+		}
+	}
+
+	for name, entries := range map[string]interface{}{
+		"http_middlewares": s.lastConfig.HTTP.Middlewares,
+		"http_routers":     s.lastConfig.HTTP.Routers,
+		"http_services":    s.lastConfig.HTTP.Services,
+		"tcp_middlewares":  s.lastConfig.TCP.Middlewares,
+		"tcp_routers":      s.lastConfig.TCP.Routers,
+		"tcp_services":     s.lastConfig.TCP.Services,
+		"udp_routers":      s.lastConfig.UDP.Routers,
+		"udp_services":     s.lastConfig.UDP.Services,
+	} {
+		if names := collectKeys(entries); len(names) > 0 {
+			if err := s.client.SAdd(ctx, s.sk(name), mkslice(names)...).Err(); err != nil {
+				return fmt.Errorf("failed to restore Redis bookkeeping: %w", err)
+			}
+		}
+	}
+
+	return s.client.Set(ctx, s.sk("kop_last_update"), time.Now().Unix(), s.TTL).Err()
+}
+
 // Keep the cached configuration alive, restoring it if any key is missing.
 func (s *RedisStore) KeepConfAlive() error {
 	s.mu.Lock()
@@ -341,39 +368,15 @@ func (s *RedisStore) KeepConfAlive() error {
 		for _, expiration := range expirations {
 			if !expiration.Val() {
 				log.Warn().Msg("Redis configuration key is missing. Pushing last known configuration")
-				// Restore only locally owned configuration. Replaying Store
-				// would also republish expired peer servers from lastConfig.
-				for key, value := range kv {
-					if err := s.client.Set(ctx, key, value, s.TTL).Err(); err != nil {
-						return fmt.Errorf("failed to restore Redis configuration: %w", err)
-					}
-				}
-				// Recreate host bookkeeping sets as well after a Redis reset.
-				for name, entries := range map[string]interface{}{
-					"http_middlewares": s.lastConfig.HTTP.Middlewares,
-					"http_routers":     s.lastConfig.HTTP.Routers,
-					"http_services":    s.lastConfig.HTTP.Services,
-					"tcp_middlewares":  s.lastConfig.TCP.Middlewares,
-					"tcp_routers":      s.lastConfig.TCP.Routers,
-					"tcp_services":     s.lastConfig.TCP.Services,
-					"udp_routers":      s.lastConfig.UDP.Routers,
-					"udp_services":     s.lastConfig.UDP.Services,
-				} {
-					if names := collectKeys(entries); len(names) > 0 {
-						if err := s.client.SAdd(ctx, s.sk(name), mkslice(names)...).Err(); err != nil {
-							return fmt.Errorf("failed to restore Redis bookkeeping: %w", err)
-						}
-					}
-				}
-				return s.client.Set(ctx, s.sk("kop_last_update"), time.Now().Unix(), s.TTL).Err()
+				return s.restoreLocalConfig(ctx)
 			}
 		}
 		return nil
 	}
 
 	if s.NeedsUpdate() {
-		log.Warn().Msg("Redis seems to have restarted and needs to be updated. Pushing last known configuration")
-		return s.storeLocked(*s.lastConfig)
+		log.Warn().Msg("Redis seems to have restarted and needs to be updated. Pushing last known local configuration")
+		return s.restoreLocalConfig(context.Background())
 	}
 
 	return nil

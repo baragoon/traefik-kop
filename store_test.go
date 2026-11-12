@@ -331,6 +331,12 @@ func Test_redisStoreKeepConfAliveDoesNotRenewPeerServers(t *testing.T) {
 			require.False(t, server.Exists(peerKey))
 			require.True(t, server.Exists(rs.sk("kop_last_update")))
 			require.True(t, server.Exists(rs.sk(proto+"_services")))
+
+			server.FlushAll()
+			rs.TTL = 0
+			require.NoError(t, store.KeepConfAlive())
+			require.True(t, server.Exists(localKey))
+			require.False(t, server.Exists(peerKey))
 		})
 	}
 }
