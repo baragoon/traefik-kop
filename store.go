@@ -45,6 +45,8 @@ type RedisStore struct {
 	client     *redis.Client
 	lastConfig *dynamic.Configuration
 	mu         sync.RWMutex
+
+	onStoreAttempt func()
 }
 
 func redisTLSConfigForAddr(addr string, tlsServerName ...string) *tls.Config {
@@ -168,9 +170,18 @@ func (s *RedisStore) Gets(key string) (map[string]string, error) {
 var svcAddrRe = regexp.MustCompile(`^traefik/(tcp|udp|http)/services/([^/]+)/loadBalancer/servers/\d+/(address|url)$`)
 
 func (s *RedisStore) Store(conf dynamic.Configuration) error {
+	if s.onStoreAttempt != nil {
+		s.onStoreAttempt()
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	return s.storeLocked(conf)
+}
+
+// storeLocked must be called with mu held.
+func (s *RedisStore) storeLocked(conf dynamic.Configuration) error {
 	s.removeOldKeys(conf.HTTP.Middlewares, "http_middlewares")
 	s.removeOldKeys(conf.HTTP.Routers, "http_routers")
 	s.removeOldKeys(conf.HTTP.Services, "http_services")
@@ -237,13 +248,13 @@ func (s *RedisStore) NeedsUpdate() bool {
 
 // Keep the cached configuration alive, restoring it if any key is missing.
 func (s *RedisStore) KeepConfAlive() error {
-	s.mu.RLock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if s.lastConfig == nil {
-		s.mu.RUnlock()
 		return nil // No config to push yet
 	}
 	conf := s.lastConfig.DeepCopy()
-	s.mu.RUnlock()
 
 	if s.TTL > 0 {
 		kv, err := ConfigToKV(*conf)
@@ -265,7 +276,7 @@ func (s *RedisStore) KeepConfAlive() error {
 		for _, expiration := range expirations {
 			if !expiration.Val() {
 				log.Warn().Msg("Redis configuration key is missing. Pushing last known configuration")
-				return s.Store(*conf)
+				return s.storeLocked(*s.lastConfig)
 			}
 		}
 		return nil
@@ -273,7 +284,7 @@ func (s *RedisStore) KeepConfAlive() error {
 
 	if s.NeedsUpdate() {
 		log.Warn().Msg("Redis seems to have restarted and needs to be updated. Pushing last known configuration")
-		return s.Store(*conf)
+		return s.storeLocked(*s.lastConfig)
 	}
 
 	return nil

@@ -1,13 +1,16 @@
 package traefikkop
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
@@ -79,6 +82,105 @@ func Test_redisStoreKeepConfAliveRefreshesTTL(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "http://172.20.0.2:80", value)
 	require.Equal(t, 30*time.Second, server.TTL(serviceKey))
+}
+
+type blockingPipelineHook struct {
+	started chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (h *blockingPipelineHook) DialHook(next redis.DialHook) redis.DialHook {
+	return next
+}
+
+func (h *blockingPipelineHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
+	return next
+}
+
+func (h *blockingPipelineHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return func(ctx context.Context, cmds []redis.Cmder) error {
+		err := next(ctx, cmds)
+		h.once.Do(func() {
+			close(h.started)
+			<-h.release
+		})
+		return err
+	}
+}
+
+func Test_redisStoreKeepConfAliveDoesNotRestoreStaleConfig(t *testing.T) {
+	server, err := miniredis.Run()
+	require.NoError(t, err)
+	defer server.Close()
+
+	store := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false)
+	rs := store.(*RedisStore)
+
+	oldConf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), oldConf))
+	require.NoError(t, store.Store(*oldConf))
+	server.FastForward(30 * time.Second)
+
+	hook := &blockingPipelineHook{
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	rs.client.AddHook(hook)
+	var releaseOnce sync.Once
+	releasePipeline := func() {
+		releaseOnce.Do(func() {
+			close(hook.release)
+		})
+	}
+	defer releasePipeline()
+
+	keepAliveDone := make(chan error, 1)
+	go func() {
+		keepAliveDone <- store.KeepConfAlive()
+	}()
+	select {
+	case <-hook.started:
+	case <-time.After(time.Second):
+		t.Fatal("keepalive did not execute its TTL refresh pipeline")
+	}
+
+	newConf := &dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON_DIFFRENT_SERVICE_NAME), newConf))
+	storeAttempted := make(chan struct{})
+	rs.onStoreAttempt = func() {
+		close(storeAttempted)
+	}
+	storeDone := make(chan error, 1)
+	go func() {
+		storeDone <- store.Store(*newConf)
+	}()
+	select {
+	case <-storeAttempted:
+	case <-time.After(time.Second):
+		t.Fatal("new configuration store was not attempted")
+	}
+
+	select {
+	case err := <-storeDone:
+		require.NoError(t, err)
+		t.Fatal("new configuration store completed while keepalive recovery was in progress")
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	releasePipeline()
+	require.NoError(t, <-keepAliveDone)
+	require.NoError(t, <-storeDone)
+
+	newServiceKey := "traefik/http/services/nginx-nginx/loadBalancer/servers/0/url"
+	value, err := store.Get(newServiceKey)
+	require.NoError(t, err)
+	require.Equal(t, "http://172.20.0.2:80", value)
+
+	oldServiceKey := "traefik/http/services/nginx/loadBalancer/servers/0/url"
+	value, err = store.Get(oldServiceKey)
+	require.NoError(t, err)
+	require.Empty(t, value)
 }
 
 func Test_redisStoreTLSOpts(t *testing.T) {
