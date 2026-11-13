@@ -582,3 +582,75 @@ func Test_redisStoreKeepConfAliveDoesNotRenewPeerServers(t *testing.T) {
 		})
 	}
 }
+
+func Test_redisStoreClearsAttemptServerOwners(t *testing.T) {
+	for _, fail := range []bool{false, true} {
+		t.Run(fmt.Sprintf("fail=%t", fail), func(t *testing.T) {
+			server := miniredis.RunT(t)
+			rs := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false).(*RedisStore)
+			conf := &dynamic.Configuration{}
+			require.NoError(t, json.Unmarshal([]byte(NGINX_CONF_JSON), conf))
+			lb := conf.HTTP.Services["nginx@docker"].LoadBalancer
+			rs.recordServerOwners(lb, map[string]struct{}{lb.Servers[0].URL: {}})
+			// A merged load balancer omitted from the final configuration must also be released.
+			rs.recordServerOwners(&dynamic.ServersLoadBalancer{}, map[string]struct{}{})
+			if fail {
+				server.SetError("injected failure")
+				require.Error(t, rs.Store(*conf))
+				require.Nil(t, rs.lastConfig)
+			} else {
+				require.NoError(t, rs.Store(*conf))
+				require.Contains(t, rs.lastServerOwners, lb)
+			}
+			require.Empty(t, rs.serverOwners)
+		})
+	}
+}
+
+type reassignServerHook struct {
+	key, value string
+	server     *miniredis.Miniredis
+}
+
+func (h *reassignServerHook) DialHook(next redis.DialHook) redis.DialHook          { return next }
+func (h *reassignServerHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook { return next }
+func (h *reassignServerHook) ProcessPipelineHook(next redis.ProcessPipelineHook) redis.ProcessPipelineHook {
+	return func(ctx context.Context, cmds []redis.Cmder) error {
+		// Reassignment after MGET must still be protected by the atomic comparison.
+		if err := h.server.Set(h.key, h.value); err != nil {
+			return err
+		}
+		h.server.SetTTL(h.key, 5*time.Second)
+		return next(ctx, cmds)
+	}
+}
+
+func Test_redisStoreKeepConfAliveDoesNotRenewReassignedServer(t *testing.T) {
+	for _, proto := range []string{"http", "tcp", "udp"} {
+		for _, duringRefresh := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/duringRefresh=%t", proto, duringRefresh), func(t *testing.T) {
+				server := miniredis.RunT(t)
+				rs := NewRedisStore("localhost", server.Addr(), 30, "", "", 0, nil, "", false).(*RedisStore)
+				field, local, peer := "address", "127.0.0.1:80", "127.0.0.2:80"
+				if proto == "http" {
+					field, local, peer = "url", "http://127.0.0.1:80", "http://127.0.0.2:80"
+				}
+				conf := &dynamic.Configuration{}
+				require.NoError(t, json.Unmarshal([]byte(fmt.Sprintf(`{"http":{},"tcp":{},"udp":{},"%s":{"services":{"app@docker":{"loadBalancer":{"servers":[{"%s":"%s"}]}}}}}`, proto, field, local)), conf))
+				require.NoError(t, rs.Store(*conf))
+				key := fmt.Sprintf("traefik/%s/services/app/loadBalancer/servers/0/%s", proto, field)
+				if duringRefresh {
+					rs.client.AddHook(&reassignServerHook{key: key, value: peer, server: server})
+				} else {
+					require.NoError(t, server.Set(key, peer))
+					server.SetTTL(key, 5*time.Second)
+				}
+				require.NoError(t, rs.KeepConfAlive())
+				value, err := server.Get(key)
+				require.NoError(t, err)
+				require.Equal(t, peer, value)
+				require.Equal(t, 5*time.Second, server.TTL(key))
+			})
+		}
+	}
+}

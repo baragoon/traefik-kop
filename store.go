@@ -248,6 +248,8 @@ func (s *RedisStore) Store(conf dynamic.Configuration) error {
 
 // storeLocked must be called with mu held.
 func (s *RedisStore) storeLocked(conf dynamic.Configuration) error {
+	// Release all owners captured for this attempt, including unused load balancers.
+	defer func() { s.serverOwners = nil }()
 	kv, err := ConfigToKV(conf)
 	if err != nil {
 		return err
@@ -482,12 +484,22 @@ func (s *RedisStore) KeepConfAlive() error {
 
 	pipe := s.client.Pipeline()
 	expirations := make(map[string]*redis.BoolCmd)
+	serverExpirations := make(map[string]*redis.Cmd)
 	for _, key := range keys {
 		if !isLocallyOwnedKey(key, expectedSets, currentSets) {
 			continue
 		}
 		if s.TTL > 0 {
-			expirations[key] = pipe.Expire(ctx, key, s.TTL)
+			if svcAddrRe.MatchString(key) {
+				// A peer may have reused this index since the configuration was stored.
+				serverExpirations[key] = pipe.Eval(ctx, `
+if redis.call("GET", KEYS[1]) == ARGV[1] then
+    return redis.call("PEXPIRE", KEYS[1], ARGV[2])
+end
+return 0`, []string{key}, s.localKV[key], max(s.TTL.Milliseconds(), 1))
+			} else {
+				expirations[key] = pipe.Expire(ctx, key, s.TTL)
+			}
 		}
 	}
 
@@ -506,6 +518,13 @@ func (s *RedisStore) KeepConfAlive() error {
 	}
 
 	if s.TTL > 0 {
+		for key, expiration := range serverExpirations {
+			if expiration.Val() == int64(0) {
+				if err := s.client.SetNX(ctx, key, s.localKV[key], s.TTL).Err(); err != nil {
+					return fmt.Errorf("failed to restore Redis key %s: %w", key, err)
+				}
+			}
+		}
 		for key, expiration := range expirations {
 			if expiration.Val() {
 				continue
