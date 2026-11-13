@@ -3,6 +3,7 @@ package traefikkop
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/netip"
 	"strings"
 	"testing"
@@ -16,11 +17,35 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/traefik/traefik/v3/pkg/config/dynamic"
+	"github.com/traefik/traefik/v3/pkg/provider/docker"
 )
 
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+}
+
+type storeError struct {
+	testStore
+}
+
+func (*storeError) Store(dynamic.Configuration) error {
+	return errors.New("injected store error")
+}
+
+func Test_createConfigHandlerLogsStoreErrorWithoutPanicking(t *testing.T) {
+	conf := dynamic.Configuration{}
+	require.NoError(t, json.Unmarshal([]byte(`{"http":{},"tcp":{},"udp":{}}`), &conf))
+	handler := createConfigHandler(
+		Config{SkipReplace: true},
+		&storeError{},
+		&docker.Provider{UseBindPortIP: true},
+		&fakeDockerClient{},
+	)
+
+	require.NotPanics(t, func() {
+		handler(conf)
+	})
 }
 
 type fakeDockerClient struct {
