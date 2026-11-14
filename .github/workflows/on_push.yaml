@@ -11,6 +11,7 @@ on:
       - 'README.md'
       - 'renovate.json'
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
     paths-ignore:
       - '.github/workflows/**'
@@ -35,6 +36,7 @@ env:
 jobs:
   build_docker:
     name: Build Docker
+    if: ${{ github.event_name != 'pull_request' || github.event.action != 'closed' || github.event.pull_request.merged }}
     # runs-on: self-hosted
     runs-on: ubuntu-latest
     steps:
@@ -110,10 +112,19 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           PR_NUMBER: ${{ github.event.number }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
         run: |
           set -eo pipefail
           SHA=${{ github.sha }}
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            if [ "$GITHUB_EVENT_ACTION" != "closed" ]; then
+              # Validate the image build on PR updates, but publish only after merge.
+              docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile docker-context
+              exit 0
+            fi
+            if [ "$PR_MERGED" != "true" ]; then
+              exit 0
+            fi
             IMAGE_TAG="pr-${PR_NUMBER}"
           else
             IMAGE_TAG="$SHA"
