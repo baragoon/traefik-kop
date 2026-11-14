@@ -11,7 +11,7 @@ on:
       - 'README.md'
       - 'renovate.json'
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
     branches: [main]
     paths-ignore:
       - '.github/workflows/**'
@@ -24,6 +24,7 @@ on:
 permissions:
   packages: write
   contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
@@ -36,7 +37,6 @@ env:
 jobs:
   build_docker:
     name: Build Docker
-    if: ${{ github.event_name != 'pull_request' || github.event.action != 'closed' || github.event.pull_request.merged }}
     # runs-on: self-hosted
     runs-on: ubuntu-latest
     steps:
@@ -48,6 +48,7 @@ jobs:
 
       - name: Log in to the Container registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        if: ${{ github.event_name == 'push' }}
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -111,7 +112,7 @@ jobs:
         env:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
-          PR_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -eo pipefail
           SHA=${{ github.sha }}
@@ -122,18 +123,19 @@ jobs:
           cp dist/*_linux_arm64*/traefik-kop docker-context/linux/arm64/traefik-kop
 
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            if [ "$GITHUB_EVENT_ACTION" != "closed" ]; then
-              # Validate the image build on PR updates, but publish only after merge.
-              docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile docker-context
-              exit 0
-            fi
-            IMAGE_TAG="pr-${PR_NUMBER}"
-          else
-            IMAGE_TAG="$SHA"
+            # Validate the image build on PR updates, but publish only after merge.
+            docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile docker-context
+            exit 0
+          fi
+
+          IMAGE_TAGS=(-t "$REGISTRY/$IMAGE_NAME:$SHA")
+          PR_NUMBER="$(gh api "repos/$GITHUB_REPOSITORY/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null) | .number] | first // empty')"
+          if [ -n "$PR_NUMBER" ]; then
+            IMAGE_TAGS+=(-t "$REGISTRY/$IMAGE_NAME:pr-$PR_NUMBER")
           fi
 
           # Build and push one multi-arch image; Dockerfile selects the matching binary via TARGETPLATFORM.
-          docker buildx build --push --platform linux/amd64,linux/arm64 -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile docker-context
+          docker buildx build --push --platform linux/amd64,linux/arm64 "${IMAGE_TAGS[@]}" -f Dockerfile docker-context
 
       # 'Push docker images' step removed: images are pushed by the buildx steps above.
       # This avoids redundant/empty pushes and potential CI confusion.
@@ -152,6 +154,7 @@ jobs:
 
       - name: Cleanup old images from registry
         uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+        if: ${{ github.event_name == 'push' }}
         with:
           tags: "*-next-*"
           older-than: "30 days"
