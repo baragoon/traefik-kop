@@ -12,8 +12,8 @@ require (
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/docker/cli v29.9.3+incompatible
 	github.com/gofiber/fiber/v3 v3.7.0
-	github.com/moby/moby/api v1.56.1
-	github.com/moby/moby/client v0.6.2
+	github.com/moby/moby/api v1.57.0
+	github.com/moby/moby/client v0.6.3
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sirupsen/logrus v1.10.2
