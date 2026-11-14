@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -112,28 +112,25 @@ jobs:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           PR_NUMBER: ${{ github.event.number }}
-          PR_MERGED: ${{ github.event.pull_request.merged }}
         run: |
           set -eo pipefail
           SHA=${{ github.sha }}
+          # Prepare docker build context containing per-arch binaries produced by goreleaser in dist/
+          mkdir -p docker-context/linux/amd64 docker-context/linux/arm64
+          # Copy the built binaries into the expected layout for the Dockerfile
+          cp dist/*_linux_amd64*/traefik-kop docker-context/linux/amd64/traefik-kop
+          cp dist/*_linux_arm64*/traefik-kop docker-context/linux/arm64/traefik-kop
+
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             if [ "$GITHUB_EVENT_ACTION" != "closed" ]; then
               # Validate the image build on PR updates, but publish only after merge.
               docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile docker-context
               exit 0
             fi
-            if [ "$PR_MERGED" != "true" ]; then
-              exit 0
-            fi
             IMAGE_TAG="pr-${PR_NUMBER}"
           else
             IMAGE_TAG="$SHA"
           fi
-          # Prepare docker build context containing per-arch binaries produced by goreleaser in dist/
-          mkdir -p docker-context/linux/amd64 docker-context/linux/arm64
-          # Copy the built binaries into the expected layout for the Dockerfile
-          cp dist/*_linux_amd64*/traefik-kop docker-context/linux/amd64/traefik-kop
-          cp dist/*_linux_arm64*/traefik-kop docker-context/linux/arm64/traefik-kop
 
           # Build and push one multi-arch image; Dockerfile selects the matching binary via TARGETPLATFORM.
           docker buildx build --push --platform linux/amd64,linux/arm64 -t "$REGISTRY/$IMAGE_NAME:$IMAGE_TAG" -f Dockerfile docker-context
