@@ -28,6 +28,5 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
     uses: ./.github/workflows/on_tag.yaml
     with:
-      snapshot: false
       tag: ${{ needs.release-please.outputs.tag_name }}
     secrets: inherit
