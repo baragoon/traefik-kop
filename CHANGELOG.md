@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.23.3](https://github.com/baragoon/traefik-kop/compare/v0.23.2...v0.23.3) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to 2791e40 ([f6cb8fa](https://github.com/baragoon/traefik-kop/commit/f6cb8fa7d4cf7ad8e7deb0bfb7935024ed939b0c))
+* **deps:** update golang.org/x/exp digest to 8801fbd ([95a03d9](https://github.com/baragoon/traefik-kop/commit/95a03d9d14f644907a36d60612be6e3e97d9f0ee))
+* **deps:** update golang.org/x/exp digest to 8801fbd ([53d556c](https://github.com/baragoon/traefik-kop/commit/53d556c6e2e3f541a65f75c469884e9ce7669637))
+* **deps:** update golang.org/x/exp digest to b15d094 ([0ecaa34](https://github.com/baragoon/traefik-kop/commit/0ecaa34e50897a595ff9376bed3a93ab1fe54a54))
+* **deps:** update golang.org/x/exp digest to b15d094 ([af018c5](https://github.com/baragoon/traefik-kop/commit/af018c5ebc6c1a8e4f024590d66e9e711aa38688))
+* **deps:** update golang.org/x/exp digest to b6de8d3 ([932da25](https://github.com/baragoon/traefik-kop/commit/932da25ca435e0736ce792c7826bc4ebda7ad25e))
+* **deps:** update golang.org/x/exp digest to b6de8d3 ([13b9866](https://github.com/baragoon/traefik-kop/commit/13b98660faca0513714603f82269610b8c8ce7fd))
+* **deps:** update golang.org/x/exp digest to e1094ee ([37731cc](https://github.com/baragoon/traefik-kop/commit/37731ccbd144043cca0d39e5087633dc3f18bddb))
+* **deps:** update golang.org/x/exp digest to e1094ee ([c83e97c](https://github.com/baragoon/traefik-kop/commit/c83e97c92962203d9748ae408f62915e0fb558cd))
+
 ## v0.22.4
 
 ### New Features
