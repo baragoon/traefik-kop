@@ -1,7 +1,7 @@
 services:
   # Redis for use in testing, if we don't have one available locally
   redis:
-    image: "redis:alpine@sha256:61d65002475565ac459faee56be20007561fe3cb6209a09cf967d25d3f3499cb"
+    image: "redis:alpine@sha256:5af80107c1eeecb484a2269b80a26d12bfa6521787da4663bd9f19f60a163483"
     restart: unless-stopped
     ports:
       - 6380:6379
