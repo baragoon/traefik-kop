@@ -113,7 +113,7 @@ services:
 
   # Basic nginx with a simple healthcheck
   nginx:
-    image: "nginx:alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7"
+    image: "nginx:alpine@sha256:b50897d5c7b1aa08067c3d90c5e8b3e47ec4e3c91c91446f67820228f7b41e34"
     restart: unless-stopped
     ports:
       - 8088:80
@@ -160,7 +160,7 @@ services:
       traefik.tcp.services.gitea-ssh.loadbalancer.server.port: 20022
 
   ephemeral:
-    image: "nginx:alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7"
+    image: "nginx:alpine@sha256:b50897d5c7b1aa08067c3d90c5e8b3e47ec4e3c91c91446f67820228f7b41e34"
     restart: "no"
     ports:
       - 80
@@ -174,7 +174,7 @@ services:
       # - "traefik.http.services.ephemeral.loadbalancer.server.port=8099"
 
   nginx_prefix:
-    image: "nginx:alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7"
+    image: "nginx:alpine@sha256:b50897d5c7b1aa08067c3d90c5e8b3e47ec4e3c91c91446f67820228f7b41e34"
     restart: unless-stopped
     ports:
       - 8090:80
