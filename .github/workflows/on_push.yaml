@@ -156,6 +156,7 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@ac45a8c04b1eb4b27974ca79a0a74f344c93664b # v1.3.0
         if: ${{ github.event_name == 'push' }}
         with:
+          token: ${{ secrets.MY_GITHUB_TOKEN }} # Requires delete:packages
           tags: "*-next-*"
           older-than: "30 days"
           delete-untagged: true
