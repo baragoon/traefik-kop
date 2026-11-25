@@ -6,13 +6,9 @@
 ### Bug Fixes
 
 * **deps:** update golang.org/x/exp digest to d6646c5 ([e2d3863](https://github.com/baragoon/traefik-kop/commit/e2d3863e5ff0a4124069857d518f000a09cca3f7))
-* **deps:** update golang.org/x/exp digest to d6646c5 ([bc8ca79](https://github.com/baragoon/traefik-kop/commit/bc8ca791873e3f5331f5b4b57da98df36b56f666))
 * **deps:** update module github.com/docker/cli to v29.10.1+incompatible ([bab23c0](https://github.com/baragoon/traefik-kop/commit/bab23c04ed9b48818db80a383a16eed9ed32c014))
-* **deps:** update module github.com/docker/cli to v29.10.1+incompatible ([9555e3b](https://github.com/baragoon/traefik-kop/commit/9555e3b2c8db866ed403239ff4043996738d2896))
 * **deps:** update module github.com/redis/go-redis/v9 to v9.24.0 ([94d123a](https://github.com/baragoon/traefik-kop/commit/94d123a74bf97d394512f0de4805da6784bdf677))
-* **deps:** update module github.com/redis/go-redis/v9 to v9.24.0 ([1d8e90b](https://github.com/baragoon/traefik-kop/commit/1d8e90b3f886eea7602305e1c8192ffda1828da2))
 * **deps:** update module github.com/traefik/traefik/v3 to v3.8.0 ([30f34f2](https://github.com/baragoon/traefik-kop/commit/30f34f2dfd90a8ddbc62e099c1764856e67fb322))
-* **deps:** update module github.com/traefik/traefik/v3 to v3.8.0 ([059edfa](https://github.com/baragoon/traefik-kop/commit/059edfa160c85437e59abc9afc2b07de9490d8a9))
 
 ## [0.23.3](https://github.com/baragoon/traefik-kop/compare/v0.23.2...v0.23.3) (2026-11-21)
 
@@ -21,13 +17,9 @@
 
 * **deps:** update golang.org/x/exp digest to 2791e40 ([f6cb8fa](https://github.com/baragoon/traefik-kop/commit/f6cb8fa7d4cf7ad8e7deb0bfb7935024ed939b0c))
 * **deps:** update golang.org/x/exp digest to 8801fbd ([95a03d9](https://github.com/baragoon/traefik-kop/commit/95a03d9d14f644907a36d60612be6e3e97d9f0ee))
-* **deps:** update golang.org/x/exp digest to 8801fbd ([53d556c](https://github.com/baragoon/traefik-kop/commit/53d556c6e2e3f541a65f75c469884e9ce7669637))
 * **deps:** update golang.org/x/exp digest to b15d094 ([0ecaa34](https://github.com/baragoon/traefik-kop/commit/0ecaa34e50897a595ff9376bed3a93ab1fe54a54))
-* **deps:** update golang.org/x/exp digest to b15d094 ([af018c5](https://github.com/baragoon/traefik-kop/commit/af018c5ebc6c1a8e4f024590d66e9e711aa38688))
 * **deps:** update golang.org/x/exp digest to b6de8d3 ([932da25](https://github.com/baragoon/traefik-kop/commit/932da25ca435e0736ce792c7826bc4ebda7ad25e))
-* **deps:** update golang.org/x/exp digest to b6de8d3 ([13b9866](https://github.com/baragoon/traefik-kop/commit/13b98660faca0513714603f82269610b8c8ce7fd))
 * **deps:** update golang.org/x/exp digest to e1094ee ([37731cc](https://github.com/baragoon/traefik-kop/commit/37731ccbd144043cca0d39e5087633dc3f18bddb))
-* **deps:** update golang.org/x/exp digest to e1094ee ([c83e97c](https://github.com/baragoon/traefik-kop/commit/c83e97c92962203d9748ae408f62915e0fb558cd))
 
 ## v0.22.4
 
