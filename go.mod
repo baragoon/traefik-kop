@@ -21,7 +21,7 @@ require (
 	github.com/traefik/paerser v0.2.3
 	github.com/traefik/traefik/v3 v3.8.0
 	github.com/urfave/cli/v3 v3.14.0
-	golang.org/x/exp v0.0.0-20261121134650-e1094eeca1b5
+	golang.org/x/exp v0.0.0-20261124000051-d6646c509b6d
 	gopkg.in/yaml.v3 v3.0.1
 )
 
