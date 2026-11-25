@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/alicebob/miniredis/v2 v2.40.0
-	github.com/docker/cli v29.10.0+incompatible
+	github.com/docker/cli v29.10.1+incompatible
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/moby/moby/api v1.57.0
 	github.com/moby/moby/client v0.6.3
