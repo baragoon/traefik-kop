@@ -13,8 +13,9 @@ on:
         default: ""
 
 permissions:
-  packages: write
   contents: write
+  issues: write
+  packages: write
 
 env:
   REGISTRY: ghcr.io
@@ -95,7 +96,7 @@ jobs:
       - name: Trigger Renovate rescan
         if: success()
         env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
           num=$(gh issue list --state open --search "Dependency Dashboard in:title" \
