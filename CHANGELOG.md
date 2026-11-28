@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.23.5](https://github.com/baragoon/traefik-kop/compare/v0.23.4...v0.23.5) (2026-11-28)
+
+
+### Bug Fixes
+
+* **deps:** update golang.org/x/exp digest to f63ec7c ([#142](https://github.com/baragoon/traefik-kop/issues/142)) ([3bd5d2c](https://github.com/baragoon/traefik-kop/commit/3bd5d2ca29126dde6c2f2c1bc699d38ce87578e4))
+* **deps:** update module github.com/alicebob/miniredis/v2 to v2.41.0 ([#139](https://github.com/baragoon/traefik-kop/issues/139)) ([d86aa7e](https://github.com/baragoon/traefik-kop/commit/d86aa7e54739c5349e03920bc438f0564ef3e3f6))
+* **deps:** update module github.com/redis/go-redis/v9 to v9.24.1 ([#141](https://github.com/baragoon/traefik-kop/issues/141)) ([ce3a838](https://github.com/baragoon/traefik-kop/commit/ce3a83857c44a852a32afe5c805a52bfe7e58a3d))
+
 ## [0.23.4](https://github.com/baragoon/traefik-kop/compare/v0.23.3...v0.23.4) (2026-11-25)
 
 
